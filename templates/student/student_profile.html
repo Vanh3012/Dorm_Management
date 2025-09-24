@@ -1,0 +1,28 @@
+{% extends "student_base.html" %}
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto">
+    <h2 class="text-2xl font-bold mb-4">Thông tin cá nhân</h2>
+    <p><strong>Họ tên:</strong> {{ user.fullname }}</p>
+    <p><strong>MSSV:</strong> {{ user.student_id }}</p>
+    <p><strong>Lớp:</strong> {{ user.class_id }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Số điện thoại:</strong> {{ user.phone_number }}</p>
+    <p><strong>CCCD:</strong> {{ user.citizen_id }}</p>
+
+    {% if room %}
+    <div class="mt-4 p-4 bg-gray-100 rounded">
+        <p><strong>Phòng:</strong> {{ room.room_number }}</p>
+        <p><strong>Dãy:</strong> {{ room.block }}</p>
+        <p><strong>Cơ sở:</strong> {{ room.address }}</p>
+
+    </div>
+    {% else %}
+    <p class="mt-4 text-gray-500">Bạn chưa được sắp xếp vào phòng.</p>
+    {% endif %}
+
+    <a href="{{ url_for('student.update_profile') }}"
+        class="mt-6 inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Sửa thông tin
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "admin/admin_base.html" %}
+{% block content %}
+<div class="bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-4">
+        {% if room %}Sửa phòng{% else %}Thêm phòng mới{% endif %}
+    </h2>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        <div>
+            <label class="block font-medium">Block</label>
+            <input name="block" value="{{ room.block if room else '' }}" required class="w-full border rounded p-2">
+        </div>
+        <div>
+            <label class="block font-medium">Số phòng</label>
+            <input name="room_number" value="{{ room.room_number if room else '' }}" required
+                class="w-full border rounded p-2">
+        </div>
+        <div>
+            <label class="block font-medium">Cơ sở/Địa chỉ</label>
+            <input name="address" value="{{ room.address if room else '' }}" required class="w-full border rounded p-2">
+        </div>
+        <div>
+            <label class="block font-medium">Sức chứa</label>
+            <input type="number" name="capacity" value="{{ room.capacity if room else '' }}" required
+                class="w-full border rounded p-2">
+        </div>
+
+        <div>
+            <label class="block font-medium">Ảnh phòng (chọn nhiều)</label>
+            <input type="file" name="images" multiple accept="image/*" class="w-full border rounded p-2">
+            <p class="text-sm text-gray-500 mt-1">Ảnh sẽ lưu theo:
+                <code>/static/img/room/&lt;address&gt;/&lt;block&gt;/...</code></p>
+        </div>
+
+        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Lưu</button>
+    </form>
+
+    {% if room and room.images %}
+    <h3 class="text-lg font-semibold mt-6 mb-2">Ảnh hiện có</h3>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {% for img in room.images %}
+        <img src="{{ img.image_url }}" class="w-full h-40 object-cover rounded shadow">
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

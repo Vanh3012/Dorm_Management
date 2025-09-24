@@ -1,0 +1,115 @@
+{% extends "admin_base.html" %}
+{% block content %}
+<div class="p-6">
+    <h1 class="text-2xl font-bold mb-6">Quản lý sinh viên</h1>
+
+    <div class="overflow-x-auto bg-white shadow-md rounded-lg">
+        <table class="w-full text-sm text-left border-collapse">
+            <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+                <tr>
+                    <th class="px-4 py-3">MSSV</th>
+                    <th class="px-4 py-3">Họ tên</th>
+                    <th class="px-4 py-3">Lớp</th>
+                    <th class="px-4 py-3">Phòng</th>
+                    <th class="px-4 py-3">Thanh toán</th>
+                    <th class="px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in students %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ item.student.student_id }}</td>
+                    <td class="px-4 py-2">{{ item.student.fullname }}</td>
+                    <td class="px-4 py-2">{{ item.student.class_id }}</td>
+                    <td class="px-4 py-2">
+                        {% if item.room %}
+                        {{ item.room.room_number }} ({{ item.room.block }})
+                        {% else %}
+                        <span class="text-gray-400 italic">Chưa có</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        {% if item.unpaid %}
+                        <span class="text-red-600 font-bold">{{ item.unpaid|length }} hóa đơn chưa thanh toán</span>
+                        {% else %}
+                        <span class="text-gray-400 italic">Không có</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <button onclick="openDetail({{ item.student.id }})"
+                            class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs">
+                            Xem chi tiết
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="studentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white w-1/2 rounded-lg shadow-lg p-6 relative">
+        <button onclick="closeModal()" class="absolute top-2 right-2 text-gray-500 hover:text-black">✕</button>
+        <h2 class="text-xl font-bold mb-4">Chi tiết sinh viên</h2>
+        <div id="modalContent">
+            <p>Đang tải...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Map service_type sang tiếng Việt
+    function translateService(type) {
+        const map = {
+            deposit: "Tiền cọc",
+            room: "Phòng",
+            utilities: "Điện nước",
+            laundry: "Giặt ủi"
+        };
+        return map[type] || type;
+    }
+
+    // Map status sang tiếng Việt
+    function translateStatus(status) {
+        const map = {
+            success: "Đã thanh toán",
+            pending: "Chưa thanh toán"
+        };
+        return map[status] || status;
+    }
+
+    function openDetail(studentId) {
+        // Gọi API lấy thông tin
+        fetch(`/admin/students/${studentId}/detail`)
+            .then(res => res.json())
+            .then(data => {
+                let payments = data.payments.length > 0
+                    ? `<ul class="list-disc list-inside">` +
+                    data.payments.map(p =>
+                        `<li>${translateService(p.service)}: ${Number(p.amount).toLocaleString()}đ — ${translateStatus(p.status)}</li>`
+                    ).join("") +
+                    `</ul>`
+                    : `<p class="italic text-gray-500">Chưa có hóa đơn</p>`;
+
+                document.getElementById("modalContent").innerHTML = `
+                    <p><b>MSSV:</b> ${data.student_id}</p>
+                    <p><b>Họ tên:</b> ${data.fullname}</p>
+                    <p><b>Lớp:</b> ${data.class_id}</p>
+                    <p><b>Email:</b> ${data.email}</p>
+                    <p><b>SĐT:</b> ${data.phone_number}</p>
+                    <p><b>Phòng hiện tại:</b> ${data.room ?? '<i class="text-gray-500">Chưa có</i>'}</p>
+                    <h3 class="mt-4 font-semibold">Lịch sử thanh toán</h3>
+                    ${payments}
+                `;
+                document.getElementById("studentModal").classList.remove("hidden");
+            });
+    }
+
+    function closeModal() {
+        document.getElementById("studentModal").classList.add("hidden");
+    }
+</script>
+
+{% endblock %}

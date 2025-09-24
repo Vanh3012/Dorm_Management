@@ -1,0 +1,75 @@
+{% extends "admin/admin_base.html" %}
+{% block content %}
+<div class="bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-6">Quản lý khiếu nại</h2>
+
+    <table class="w-full border rounded overflow-hidden">
+        <thead class="bg-gray-100 text-sm uppercase">
+            <tr>
+                <th class="p-3 border">ID</th>
+                <th class="p-3 border">Sinh viên</th>
+                <th class="p-3 border">Tiêu đề</th>
+                <th class="p-3 border">Nội dung</th>
+                <th class="p-3 border">Ảnh minh họa</th>
+                <th class="p-3 border">Trạng thái</th>
+                <th class="p-3 border">Phản hồi</th>
+            </tr>
+        </thead>
+        <tbody class="text-sm text-center">
+            {% for c in complains %}
+            <tr class="border-t hover:bg-gray-50">
+                <td class="p-3">{{ c.id }}</td>
+                <td class="p-3">{{ c.user.fullname }}</td>
+                <td class="p-3 font-semibold">{{ c.title }}</td>
+                <td class="p-3 text-left">{{ c.content }}</td>
+                <td class="p-3">
+                    {% if c.images %}
+                    <div class="flex flex-wrap gap-2 justify-center">
+                        {% for img in c.images %}
+                        <a href="{{ url_for('static', filename=img.image_url) }}" target="_blank">
+                            <img src="{{ url_for('static', filename=img.image_url) }}"
+                                class="w-20 h-20 object-cover rounded border hover:scale-105 transition">
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <span class="italic text-gray-400">Không có</span>
+                    {% endif %}
+                </td>
+                <td class="p-3">
+                    {% if c.status == 'pending' %}
+                    <span class="px-2 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">Chờ xử lý</span>
+                    {% elif c.status == 'answered' %}
+                    <span class="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">Đã phản hồi</span>
+                    {% elif c.status == 'closed' %}
+                    <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">Đã đóng</span>
+                    {% endif %}
+                </td>
+                <td class="p-3">
+                    {% if not c.reply %}
+                    <form method="POST" action="{{ url_for('admin.reply_complain', complain_id=c.id) }}"
+                        class="space-y-2">
+                        <textarea name="reply" rows="2" required
+                            class="border rounded px-2 py-1 w-full text-sm"></textarea>
+                        <button type="submit"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
+                            Gửi phản hồi
+                        </button>
+                    </form>
+                    {% else %}
+                    <div class="text-left">
+                        <b>Admin:</b>
+                        <p>{{ c.reply }}</p>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="p-6 text-gray-500 italic">Chưa có khiếu nại nào.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

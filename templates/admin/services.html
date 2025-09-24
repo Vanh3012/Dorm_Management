@@ -1,0 +1,109 @@
+{% extends "admin/admin_base.html" %}
+{% block content %}
+
+<div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-2xl font-bold mb-4">Quản lý dịch vụ</h2>
+
+    <table class="w-full border text-sm text-center">
+        <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+            <tr>
+                <th class="px-4 py-2">ID</th>
+                <th class="px-4 py-2">Sinh viên</th>
+                <th class="px-4 py-2">Phòng</th>
+                <th class="px-4 py-2">Dịch vụ</th>
+                <th class="px-4 py-2">Mô tả</th>
+                <th class="px-4 py-2">Giá tiền</th>
+                <th class="px-4 py-2">Trạng thái</th>
+                <th class="px-4 py-2">Ngày</th>
+                <th class="px-4 py-2">Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in service_requests %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="px-4 py-2 font-medium">{{ req.id }}</td>
+                <td class="px-4 py-2">{{ req.user.fullname }}<br><span class="text-xs text-gray-500">{{
+                        req.user.student_id }}</span></td>
+                <td class="px-4 py-2">
+                    {% if req.room %} {{ req.room.block }} - {{ req.room.room_number }}
+                    {% else %} -
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2">
+                    {% if req.service_type == "trash" %} Thu gom rác
+                    {% elif req.service_type == "maintenance" %} Bảo trì sửa chữa
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2 text-left">{{ req.description or "-" }}</td>
+                <td class="px-4 py-2 font-semibold text-blue-700">
+                    {% if req.service_type == "maintenance" %}
+                    <form action="{{ url_for('admin.set_service_price', req_id=req.id) }}" method="POST"
+                        class="flex gap-2 items-center justify-center">
+                        <input type="number" name="price" value="{{ req.price or '' }}"
+                            class="w-24 border rounded px-2 py-1 text-sm" placeholder="VNĐ">
+                        <button type="submit"
+                            class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-2 py-1 rounded">
+                            Lưu
+                        </button>
+                    </form>
+                    {% else %}
+                    {{ "{:,.0f}".format(req.price) }}đ
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2">
+                    {% if req.status == "pending" %}
+                    <span class="px-2 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">Chờ xử lý</span>
+                    {% elif req.status == "in_progress" %}
+                    <span class="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">Đang xử lý</span>
+                    {% elif req.status == "completed" %}
+                    <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">Hoàn thành</span>
+                    {% elif req.status == "rejected" %}
+                    <span class="px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-800">Từ chối</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2">{{ req.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+                <td class="px-4 py-2 space-x-2">
+                    <div class="relative inline-block text-left">
+                        <!-- Nút chính -->
+                        <button onclick="toggleMenu(this)" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs">
+                            Hành động
+                        </button>
+                    
+                        <!-- Menu ẩn -->
+                        <div class="hidden absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg z-10">
+                            <a href="{{ url_for('admin.update_service_status', req_id=req.id, status='in_progress') }}"
+                                class="block px-4 py-2 text-blue-600 hover:bg-gray-100 text-xs">Xử lý</a>
+                            <a href="{{ url_for('admin.update_service_status', req_id=req.id, status='completed') }}"
+                                class="block px-4 py-2 text-green-600 hover:bg-gray-100 text-xs">Hoàn thành</a>
+                            <a href="{{ url_for('admin.update_service_status', req_id=req.id, status='rejected') }}"
+                                class="block px-4 py-2 text-red-600 hover:bg-gray-100 text-xs">Từ chối</a>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" class="px-4 py-4 italic text-gray-500">Chưa có yêu cầu nào</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script>
+        function toggleMenu(btn) {
+            const menu = btn.nextElementSibling;
+            menu.classList.toggle("hidden");
+        }
+
+        // Click ngoài thì tự đóng menu
+        document.addEventListener("click", function (e) {
+            document.querySelectorAll("[onclick='toggleMenu(this)']").forEach(button => {
+                const menu = button.nextElementSibling;
+                if (!button.contains(e.target) && !menu.contains(e.target)) {
+                    menu.classList.add("hidden");
+                }
+            });
+        });
+    </script>
+</div>
+
+{% endblock %}

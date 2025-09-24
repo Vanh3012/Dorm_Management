@@ -1,0 +1,64 @@
+{% extends "student/student_base.html" %}
+{% block content %}
+<div class="relative w-full h-[calc(100vh-64px)] overflow-hidden">
+    <div id="carousel" class="flex transition-transform duration-700 ease-in-out h-full">
+        <img src="{{ url_for('static', filename='img/ptit1.png') }}" class="w-full flex-shrink-0 object-cover h-full"
+            alt="Ảnh 1">
+        <img src="{{ url_for('static', filename='img/ptit2.png') }}" class="w-full flex-shrink-0 object-cover h-full"
+            alt="Ảnh 2">
+        <img src="{{ url_for('static', filename='img/ptit3.jpg') }}" class="w-full flex-shrink-0 object-cover h-full"
+            alt="Ảnh 3">
+    </div>
+
+    <!-- Nút điều hướng -->
+    <button onclick="prevSlide()"
+        class="absolute top-1/2 left-4 -translate-y-1/2 bg-white/30 hover:bg-white/70 text-black rounded-full p-2">
+        ‹
+    </button>
+    <button onclick="nextSlide()"
+        class="absolute top-1/2 right-4 -translate-y-1/2 bg-white/30 hover:bg-white/70 text-black rounded-full p-2">
+        ›
+    </button>
+
+    <!-- Chấm chỉ số -->
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+        <span class="dot w-3 h-3 bg-white rounded-full cursor-pointer" onclick="goToSlide(0)"></span>
+        <span class="dot w-3 h-3 bg-white/50 rounded-full cursor-pointer" onclick="goToSlide(1)"></span>
+        <span class="dot w-3 h-3 bg-white/50 rounded-full cursor-pointer" onclick="goToSlide(2)"></span>
+    </div>
+</div>
+
+<script>
+    let currentSlide = 0;
+    const carousel = document.getElementById("carousel");
+    const dots = document.querySelectorAll(".dot");
+    const totalSlides = carousel.children.length;
+
+    function updateSlide() {
+        carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
+        dots.forEach((dot, i) => {
+            dot.classList.toggle("bg-white", i === currentSlide);
+            dot.classList.toggle("bg-white/50", i !== currentSlide);
+        });
+    }
+
+    function nextSlide() {
+        currentSlide = (currentSlide + 1) % totalSlides;
+        updateSlide();
+    }
+
+    function prevSlide() {
+        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+        updateSlide();
+    }
+
+    function goToSlide(index) {
+        currentSlide = index;
+        updateSlide();
+    }
+
+    setInterval(nextSlide, 5000); // Tự động chạy sau 5s
+    updateSlide();
+</script>
+
+{% endblock %}

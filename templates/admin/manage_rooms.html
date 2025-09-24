@@ -1,0 +1,51 @@
+{% extends "admin/admin_base.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Quản lý phòng</h2>
+
+<!-- Bộ lọc -->
+<form method="get" class="flex gap-4 mb-6">
+    <select name="address" class="border px-2 py-1 rounded">
+        <option value="">-- Cơ sở --</option>
+        <option value="Hà Đông">Hà Đông</option>
+        <option value="Ngọc Trục">Ngọc Trục</option>
+        <option value="Hoàng Quốc Việt">Hoàng Quốc Việt</option>
+    </select>
+    <select name="block" class="border px-2 py-1 rounded">
+        <option value="">-- Dãy --</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+    </select>
+    <input type="text" name="room_number" placeholder="Số phòng" class="border px-2 py-1 rounded">
+    <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded">Lọc</button>
+</form>
+
+<!-- Danh sách phòng -->
+<table class="w-full border">
+    <thead>
+        <tr class="bg-gray-200">
+            <th class="border px-2 py-1">Cơ sở</th>
+            <th class="border px-2 py-1">Dãy</th>
+            <th class="border px-2 py-1">Số phòng</th>
+            <th class="border px-2 py-1">Sức chứa</th>
+            <th class="border px-2 py-1">Còn trống</th>
+            <th class="border px-2 py-1">Chi tiết</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for room in rooms %}
+        <tr>
+            <td class="border px-2 py-1">{{ room.address }}</td>
+            <td class="border px-2 py-1">{{ room.block }}</td>
+            <td class="border px-2 py-1">{{ room.room_number }}</td>
+            <td class="border px-2 py-1">{{ room.capacity }}</td>
+            <td class="border px-2 py-1">{{ room.available }}</td>
+            <td class="border px-2 py-1">
+                <a href="{{ url_for('admin.room_detail', room_id=room.id) }}"
+                    class="text-blue-600 hover:underline">Xem</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

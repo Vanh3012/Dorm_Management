@@ -1,0 +1,48 @@
+{% extends "student/student_base.html" %}
+{% block content %}
+<div class="bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-4">Khiếu nại & Góp ý</h2>
+
+    <!-- Form complain -->
+    <form method="POST" enctype="multipart/form-data" class="space-y-4 mb-8">
+        <input type="text" name="title" placeholder="Tiêu đề" required class="w-full border rounded px-3 py-2">
+        <textarea name="content" placeholder="Nội dung" rows="4" required
+            class="w-full border rounded px-3 py-2"></textarea>
+        <input type="file" name="images" accept="image/*" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0 file:text-sm file:font-semibold
+                  file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+        <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Gửi khiếu nại</button>
+    </form>
+
+    <!-- Danh sách complain -->
+    <h3 class="text-lg font-semibold mb-2">Danh sách khiếu nại</h3>
+    <div class="space-y-4">
+        {% for c in complains %}
+        <div class="border rounded p-4">
+            <p><b>{{ c.title }}</b> <span class="text-gray-500 text-sm">({{ c.created_at.strftime("%d/%m/%Y") }})</span>
+            </p>
+            <p>{{ c.content }}</p>
+
+            {% if c.images %}
+            <div class="flex gap-2 mt-2 flex-wrap">
+                {% for img in c.images %}
+                <img src="{{ url_for('static', filename=img.image_url) }}" alt="complain image"
+                    class="w-32 h-32 object-cover rounded border">
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <p class="mt-2 text-sm"><b>Trạng thái:</b> {{ c.status }}</p>
+            {% if c.reply %}
+            <div class="mt-2 p-3 bg-gray-50 border rounded">
+                <b>Phản hồi từ Admin:</b>
+                <p>{{ c.reply }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="text-gray-500">Chưa có khiếu nại nào.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

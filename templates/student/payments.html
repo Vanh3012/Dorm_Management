@@ -1,0 +1,104 @@
+{% extends "student/student_base.html" %}
+{% block content %}
+
+<div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-2xl font-bold mb-6">Quản lý thanh toán</h2>
+
+    <!-- Bộ lọc -->
+    <div class="flex flex-wrap gap-2 mb-6">
+        <a href="{{ url_for('student.payments', type='all') }}"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition
+              {% if current_type == 'all' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
+            Tất cả
+        </a>
+        <a href="{{ url_for('student.payments', type='deposit') }}"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition
+              {% if current_type == 'deposit' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
+            Tiền cọc
+        </a>
+        <a href="{{ url_for('student.payments', type='room') }}"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition
+              {% if current_type == 'room' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
+            Tiền phòng
+        </a>
+        <a href="{{ url_for('student.payments', type='utilities') }}"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition
+              {% if current_type == 'utilities' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
+            Điện/Nước
+        </a>
+        <a href="{{ url_for('student.payments', type='trash') }}"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition
+              {% if current_type == 'trash' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
+            Thu gom rác
+        </a>
+        <a href="{{ url_for('student.payments', type='maintenance') }}"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition
+              {% if current_type == 'maintenance' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
+            Bảo trì
+        </a>
+    </div>
+
+    <!-- Bảng thanh toán -->
+    <div class="overflow-x-auto">
+        <table class="w-full border rounded-lg overflow-hidden">
+            <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+                <tr>
+                    <th class="p-3 border">ID</th>
+                    <th class="p-3 border">Loại dịch vụ</th>
+                    <th class="p-3 border">Phòng</th>
+                    <th class="p-3 border">Số tiền</th>
+                    <th class="p-3 border">Thời gian</th>
+                    <th class="p-3 border">Trạng thái</th>
+                    <th class="p-3 border">-</th>
+                </tr>
+            </thead>
+            <tbody class="text-center text-sm">
+                {% for p in payments %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-3">{{ p.id }}</td>
+                    <td class="p-3">
+                        {% if p.service_type == 'deposit' %} Tiền cọc
+                        {% elif p.service_type == 'room' %} Tiền phòng
+                        {% elif p.service_type == 'utilities' %} Điện/Nước
+                        {% elif p.service_type == 'trash' %} Thu gom rác
+                        {% elif p.service_type == 'maintenance' %} Bảo trì sửa chữa
+                        {% endif %}
+                    </td>
+                    <td class="p-3">{{ p.room.block }} - {{ p.room.room_number }} - {{ p.room.address }}</td>
+                    <td class="p-3 font-semibold text-blue-700">{{ "{:,.0f}".format(p.amount) }} đ</td>
+                    <td class="p-3">{{ p.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+                    <td class="p-3">
+                        {% if p.status == 'pending' %}
+                        <span class="px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-700">
+                            Chưa thanh toán
+                        </span>
+                        {% else %}
+                        <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">
+                            Đã thanh toán
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3">
+                        {% if p.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('student.pay', payment_id=p.id) }}">
+                            <button type="submit"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs">
+                                Thanh toán
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="p-6 text-gray-500 italic">Không có hóa đơn nào</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

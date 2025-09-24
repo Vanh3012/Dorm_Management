@@ -1,0 +1,75 @@
+{% extends "admin_base.html" %}
+{% block content %}
+
+<div class="p-6">
+    <h1 class="text-2xl font-bold mb-6">Quản lý hóa đơn</h1>
+
+    <div class="overflow-x-auto bg-white shadow-md rounded-lg">
+        <table class="w-full text-sm text-left border-collapse">
+            <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+                <tr>
+                    <th class="px-4 py-3">ID</th>
+                    <th class="px-4 py-3">Sinh viên</th>
+                    <th class="px-4 py-3">Phòng</th>
+                    <th class="px-4 py-3">Loại</th>
+                    <th class="px-4 py-3">Tháng/Năm</th>
+                    <th class="px-4 py-3">Số tiền</th>
+                    <th class="px-4 py-3">Trạng thái</th>
+                    <th class="px-4 py-3">Ngày tạo</th>
+                    <th class="px-4 py-3">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in payments %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ p.id }}</td>
+                    <td class="px-4 py-2">
+                        {{ p.fullname }} <br>
+                        <span class="text-xs text-gray-500">{{ p.student_id }} - {{ p.class_id }}</span>
+                    </td>
+                    <td class="px-4 py-2">
+                        {{ p.room_number }} - {{ p.block }} <br>
+                        <span class="text-xs text-gray-500">{{ p.address }}</span>
+                    </td>
+                    <td class="px-4 py-2">
+                        {% if p.service_type == "deposit" %}
+                            Tiền cọc
+                        {% elif p.service_type == "room" %}
+                            Phòng
+                        {% elif p.service_type == "utilities" %}
+                            Điện nước
+                        {% elif p.service_type == "laundry" %}
+                            Giặt ủi
+                        {% else %}
+                        {{ p.service_type }}
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">{{ p.month_paid }}/{{ p.year_paid }}</td>
+                    <td class="px-4 py-2 font-semibold">{{ "{:,.0f}".format(p.amount) }} đ</td>
+                    <td class="px-4 py-2">
+                        {% if p.status == "success" %}
+                        <span class="text-green-600 font-bold">Đã thanh toán</span>
+                        {% else %}
+                        <span class="text-red-600 font-bold">Chờ xử lý</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">{{ p.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+                    <td class="px-4 py-2">
+                        {% if p.status != "success" %}
+                        <form method="POST" action="{{ url_for('admin.mark_payment_paid', payment_id=p.id) }}">
+                            <button class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs">
+                                Xác nhận
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="text-gray-400 italic">✓</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

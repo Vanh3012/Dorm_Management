@@ -1,0 +1,112 @@
+{% extends "admin/admin_base.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Chi tiết phòng {{ room.room_number }}</h2>
+
+<!-- Layout 2 cột: ảnh bên trái, thông tin bên phải -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start w-full">
+
+    <!-- Thông tin phòng -->
+    <div class="bg-white shadow rounded p-6">
+        <div class="grid grid-cols-1 gap-y-2">
+            <p><b>Cơ sở:</b> {{ room.address }}</p>
+            <p><b>Dãy:</b> {{ room.block }}</p>
+            <p><b>Số phòng:</b> {{ room.room_number }}</p>
+            <p><b>Sức chứa:</b> {{ room.capacity }}</p>
+            <p><b>Còn trống:</b> {{ room.available }}</p>
+            <p><b>Giá phòng:</b> {{ "{:,.0f}".format(room.price_room) }} VNĐ</p>
+            <p><b>Điện:</b> {{ "{:,.0f}".format(room.price_electricity) }} đ/kWh</p>
+            <p><b>Nước:</b> {{ "{:,.0f}".format(room.price_water) }} đ/m³</p>
+            <p><b>Dịch vụ:</b> {{ "{:,.0f}".format(room.price_service) }} VNĐ</p>
+            <p><b>Tiền cọc:</b> {{ "{:,.0f}".format(room.deposit) }} VNĐ</p>
+        </div>
+
+        <a href="{{ url_for('admin.edit_room', room_id=room.id) }}"
+            class="inline-block mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Sửa phòng
+        </a>
+    </div>
+
+    <!-- Slider ảnh -->
+    {% if room.images and room.images|length > 0 %}
+    <div id="roomSlider" class="relative w-full rounded-lg overflow-hidden shadow">
+        {% for img in room.images %}
+        <img src="{{ img.image_url }}" class="slide w-full h-[360px] object-cover {% if not loop.first %}hidden{% endif %}">
+        {% endfor %}
+    
+        <!-- Nút điều hướng -->
+        <button id="prevBtn"
+            class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 text-white w-9 h-9 rounded-full hover:bg-black/60">‹</button>
+        <button id="nextBtn"
+            class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 text-white w-9 h-9 rounded-full hover:bg-black/60">›</button>
+    
+        <!-- Dots -->
+        <div class="absolute bottom-3 w-full flex justify-center gap-2">
+            {% for _ in room.images %}
+            <span class="dot w-2.5 h-2.5 rounded-full {% if loop.first %}bg-white{% else %}bg-white/40{% endif %}"></span>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="italic text-gray-500">Chưa có ảnh cho phòng này</p>
+    {% endif %}
+    
+</div>
+
+<!-- Danh sách sinh viên -->
+<h3 class="text-xl font-semibold mt-8 mb-2">Danh sách sinh viên đang ở</h3>
+<div class="bg-white rounded shadow overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-100">
+            <tr>
+                <th class="px-3 py-2 text-left">Họ tên</th>
+                <th class="px-3 py-2 text-left">MSSV</th>
+                <th class="px-3 py-2 text-left">Lớp</th>
+                <th class="px-3 py-2 text-left">Email</th>
+                <th class="px-3 py-2 text-left">SĐT</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr class="border-t">
+                <td class="px-3 py-2">{{ booking.user.fullname }}</td>
+                <td class="px-3 py-2">{{ booking.user.student_id }}</td>
+                <td class="px-3 py-2">{{ booking.user.class_id }}</td>
+                <td class="px-3 py-2">{{ booking.user.email }}</td>
+                <td class="px-3 py-2">{{ booking.user.phone_number }}</td>
+            </tr>
+            {% else %}
+            <tr class="border-t">
+                <td colspan="5" class="px-3 py-3 italic text-gray-500">Không có sinh viên nào đang ở phòng này</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Slider JS -->
+<script>
+    (() => {
+        const root = document.getElementById('roomSlider');
+        if (!root) return;
+        const slides = Array.from(root.querySelectorAll('.slide'));
+        const dots = Array.from(root.querySelectorAll('.dot'));
+        const prev = root.querySelector('#prevBtn');
+        const next = root.querySelector('#nextBtn');
+        let i = 0;
+
+        const show = (n) => {
+            slides.forEach((el, idx) => el.classList.toggle('hidden', idx !== n));
+            dots.forEach((d, idx) => d.className = 'dot w-2.5 h-2.5 rounded-full ' +
+                (idx === n ? 'bg-white' : 'bg-white/40'));
+            i = n;
+        };
+
+        prev?.addEventListener('click', () => show((i - 1 + slides.length) % slides.length));
+        next?.addEventListener('click', () => show((i + 1) % slides.length));
+        dots.forEach((d, idx) => d.addEventListener('click', () => show(idx)));
+
+        // auto-play
+        if (slides.length > 1) setInterval(() => show((i + 1) % slides.length), 5000);
+    })();
+</script>
+{% endblock %}
