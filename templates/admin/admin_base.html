@@ -15,10 +15,11 @@
             <a href="{{ url_for('admin.dashboard') }}" >Quản trị KTX</a>
         </h2>
         <nav class="flex flex-col space-y-2">
+            <a href="{{ url_for('admin.manage_announcements') }}" class="hover:bg-gray-700 px-3 py-2 rounded">Quản lý thông báo</a>
             <a href="{{ url_for('admin.manage_rooms') }}" class="hover:bg-gray-700 px-3 py-2 rounded">Quản lý phòng</a>
             <a href="{{ url_for('admin.students') }}" class="hover:bg-gray-700 px-3 py-2 rounded">Quản lý sinh viên</a>
             <a href="{{ url_for('admin.manage_applications') }}" class="hover:bg-gray-700 px-3 py-2 rounded">Quản lý đơn đăng ký</a>
-            <a href="{{ url_for('admin.manage_services') }}" class="hover:text-blue-600 px-3 py-2 rounded">Quản lý dịch vụ</a>
+            <a href="{{ url_for('admin.manage_services') }}" class="hover:bg-gray-600 px-3 py-2 rounded">Quản lý dịch vụ</a>
             <a href="{{ url_for('admin.payments') }}" class="hover:bg-gray-700 px-3 py-2 rounded">Quản lý hóa đơn</a>
             <a href="{{ url_for('admin.manage_complains') }}" class="hover:bg-gray-700 px-3 py-2 rounded">Quản lý khiếu nại</a>
         </nav>

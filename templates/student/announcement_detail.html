@@ -1,0 +1,27 @@
+{% extends "student/student_base.html" %}
+{% block content %}
+<div class="bg-white shadow rounded p-20">
+    <!-- Header -->
+    <div class="flex items-center gap-3 mb-4">
+        <img src="{{ url_for('static', filename='img/admin_avatar.jpg') }}" class="w-12 h-12 rounded-full border"
+            alt="Admin avatar">
+        <div>
+            <p class="font-semibold">{{ ann.admin.fullname if ann.admin else "Admin" }}</p>
+            <p class="text-gray-500 text-sm">{{ ann.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+        </div>
+    </div>
+
+    <!-- Nội dung -->
+    <h2 class="text-2xl font-bold mb-3">{{ ann.title }}</h2>
+    <div class="prose max-w-none whitespace-pre-line">{{ ann.content | safe }}</div>
+
+    <!-- Ảnh đính kèm -->
+    {% if ann.image_url %}
+    <img src="{{ url_for('static', filename=ann.image_url) }}"
+        class="my-4 rounded-lg max-h-[500px] w-full object-cover shadow">
+    {% endif %}
+</div>
+
+<a href="{{ url_for('student.announcements') }}" class="inline-block mt-6 text-blue-600 hover:underline">← Quay lại danh
+    sách</a>
+{% endblock %}

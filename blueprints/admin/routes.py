@@ -3,12 +3,15 @@ from flask_login import login_required, current_user
 from models.user import User
 from models.booking import Booking
 from models.room import Room
-from models.application import Application
+from models.application_rooms import ApplicationRoom
 from models.payment import Payment
 from models.service_request import ServiceRequest
 from models.complain import Complain
+from models.complain_image import ComplainImage
+from models.announcement import Announcement 
 import os, time
 from models.room_image import RoomImage
+from models.notification import Notification
 from extensions import db
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -24,14 +27,13 @@ def restrict_to_admin():
     if not current_user.is_authenticated or current_user.role != "admin":
         flash("Bạn không có quyền truy cập trang quản trị.", "danger")
         return redirect(url_for("auth.login"))
-
+#-------------------------------------------------------
 # Dashboard
 @admin_bp.route("/dashboard")
 @login_required
 def dashboard():
     return render_template("admin/admin_dashboard.html", user=current_user)
-
-
+#-------------------------------------------------------
 # Quản lý phòng
 @admin_bp.route("/rooms")
 @login_required
@@ -53,7 +55,6 @@ def manage_rooms():
     rooms = query.all()
 
     return render_template("admin/manage_rooms.html", rooms=rooms)
-
 
 # Chi tiết phòng
 @admin_bp.route("/rooms/<int:room_id>")
@@ -128,8 +129,39 @@ def edit_room(room_id=None):
 
     return render_template("admin/edit_room.html", room=room)
 
+# Xoá sinh viên khỏi phòng (kick)
+@admin_bp.route("/rooms/<int:room_id>/kick/<int:booking_id>", methods=["POST"])
+@login_required
+def kick_student(room_id, booking_id):
+    booking = Booking.query.get_or_404(booking_id)
 
+    if booking.status != "active":
+        flash("Sinh viên này không còn ở phòng.", "warning")
+        return redirect(url_for("admin.room_detail", room_id=room_id))
 
+    # Cập nhật trạng thái booking
+    booking.status = "canceled"   # hoặc "finished" tuỳ quy ước
+    booking.end_date = db.func.current_date()
+
+    # Cập nhật phòng
+    room = booking.room
+    if room:
+        room.available = room.available + 1
+
+    db.session.commit()
+
+    # Tạo thông báo cho sinh viên
+    notif = Notification(
+        user_id=ApplicationRoom.user_id,
+        message=f"Bạn đã bị kích khỏi phòng."
+    )
+    db.session.add(notif)
+    db.session.commit()
+    
+
+    flash("Đã kick sinh viên ra khỏi phòng!", "success")
+    return redirect(url_for("admin.room_detail", room_id=room_id))
+#-------------------------------------------------------
 # Quản lý đơn đăng ký
 @admin_bp.route("/manage_applications")
 @login_required
@@ -138,9 +170,8 @@ def manage_applications():
         flash("Bạn không có quyền truy cập!", "danger")
         return redirect(url_for("home"))
 
-    applications = Application.query.order_by(Application.created_at.asc()).all()
+    applications = ApplicationRoom.query.order_by(ApplicationRoom.created_at.asc()).all()
     return render_template("admin/manage_applications.html", applications=applications)
-
 
 # API: Lấy chi tiết 1 đơn (JSON) -> dùng AJAX gọi
 @admin_bp.route("/api/application/<int:app_id>")
@@ -149,7 +180,9 @@ def get_application_detail(app_id):
     if current_user.role != "admin":
         return jsonify({"error": "Forbidden"}), 403
 
-    app = Application.query.get_or_404(app_id)
+    app = ApplicationRoom.query.get_or_404(app_id)
+    room = Room.query.get(app.room_id)
+
     data = {
         "id": app.id,
         "fullname": app.fullname,
@@ -158,13 +191,28 @@ def get_application_detail(app_id):
         "citizen_id": app.citizen_id,
         "email": app.email,
         "phone_number": app.phone_number,
-        "room": f"{app.room.block}{app.room.room_number} - {app.room.address}",
+        "room": f"{room.block}{room.room_number} - {room.address}",
         "status": app.status,
         "created_at": app.created_at.strftime("%d/%m/%Y %H:%M"),
-        # chỉ cho phép hành động khi còn pending
         "can_approve": app.status == "pending",
         "can_reject": app.status == "pending",
     }
+
+    # Thêm chi tiết từ ApplicationRoom
+    data.update({
+        "address": app.address,
+        "relative1_name": app.relative1_name,
+        "relative1_phone": app.relative1_phone,
+        "relative1_birthyear": app.relative1_birthyear,
+        "relative2_name": app.relative2_name,
+        "relative2_phone": app.relative2_phone,
+        "relative2_birthyear": app.relative2_birthyear,
+        "policy_type": app.policy_type,
+        "policy_proof": app.policy_proof,
+        "student_photo": app.student_photo,
+        "citizen_proof": app.citizen_proof,
+    })
+
     return jsonify(data)
 
 # Duyệt đơn
@@ -175,7 +223,7 @@ def approve_application(app_id):
         flash("Bạn không có quyền truy cập!", "danger")
         return redirect(url_for("home"))
 
-    application = Application.query.get_or_404(app_id)
+    application = ApplicationRoom.query.get_or_404(app_id)
     room = Room.query.get(application.room_id)
 
     # Chỉ thay đổi trạng thái đơn, KHÔNG trừ available ở đây
@@ -209,6 +257,14 @@ def approve_application(app_id):
     db.session.add(payment)
     db.session.commit()
 
+    # Tạo thông báo cho sinh viên
+    notif = Notification(
+    user_id=application.user_id,
+    message=f"Đơn đăng ký phòng của bạn đã được xử lý."
+    )
+    db.session.add(notif)
+    db.session.commit()
+
     flash("Đơn đã được duyệt. Sinh viên cần thanh toán cọc trước khi được xếp phòng.", "success")
     return redirect(url_for("admin.manage_applications"))
 
@@ -221,13 +277,24 @@ def reject_application(app_id):
         flash("Bạn không có quyền truy cập!", "danger")
         return redirect(url_for("home"))
 
-    application = Application.query.get_or_404(app_id)
+    application = ApplicationRoom.query.get_or_404(app_id)
     if application.status != "pending":
         flash("Đơn này đã được xử lý trước đó.", "info")
         return redirect(url_for("admin.manage_applications"))
 
     application.status = "rejected"
     db.session.commit()
+
+    # Tạo thông báo cho sinh viên
+   
+    notif = Notification(
+    user_id=application.user_id,
+    message=f"Đơn đăng ký phòng {application.room.room_number} của bạn đã bị TỪ CHỐI."
+    )
+    db.session.add(notif)
+    db.session.commit()
+    
+
     flash("Đơn đã bị từ chối.", "info")
     return redirect(url_for("admin.manage_applications"))
 
@@ -288,7 +355,6 @@ def payments():
     payments = Payment.query.order_by(Payment.created_at.desc()).all()
     return render_template("admin/payments.html", payments=payments)
 
-
 @admin_bp.route("/payments/<int:payment_id>/mark_paid", methods=["POST"])
 @login_required
 def mark_payment_paid(payment_id):
@@ -305,7 +371,6 @@ def manage_services():
     # Lấy tất cả yêu cầu dịch vụ
     service_requests = ServiceRequest.query.order_by(ServiceRequest.id.asc()).all()
     return render_template("admin/services.html", service_requests=service_requests)
-
 
 @admin_bp.route("/services/<int:req_id>/update/<string:status>")
 @login_required
@@ -418,3 +483,78 @@ def close_complain(complain_id):
 
     flash("Đã đóng khiếu nại!", "success")
     return redirect(url_for("admin.manage_complains"))
+
+#Announcement
+@admin_bp.route("/announcements")
+def manage_announcements():
+    anns = Announcement.query.order_by(Announcement.created_at.desc()).all()
+    return render_template("admin/announcements.html", announcements=anns)
+
+@admin_bp.route("/announcements/create", methods=["POST"])
+def create_announcement():
+    title = request.form.get("title")
+    content = request.form.get("content")
+    file = request.files.get("image")
+
+    img_url = None
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        save_path = os.path.join(current_app.config["UPLOAD_FOLDER_ANNOUNCEMENTS"], filename)
+        file.save(save_path)
+        img_url = f"uploads/announcements/{filename}"
+
+    ann = Announcement(title=title, content=content, image_url=img_url, admin_id=current_user.id)
+    db.session.add(ann)
+    db.session.commit()
+
+    # Tạo thông báo cho tất cả sinh viên
+    students = User.query.filter_by(role="student").all()
+    for stu in students:
+        notif = Notification(
+            user_id=stu.id,
+            message=f"Thông báo mới: {title}"
+        )
+        db.session.add(notif)
+    db.session.commit()
+
+    flash("Đã đăng thông báo!", "success")
+    return redirect(url_for("admin.manage_announcements"))
+
+@admin_bp.route("/announcements/<int:ann_id>")
+def announcement_detail(ann_id):
+    ann = Announcement.query.get_or_404(ann_id)
+    return render_template("admin/announcement_detail.html", ann=ann)
+
+# Sửa Announcement
+@admin_bp.route("/announcements/<int:ann_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_announcement(ann_id):
+    ann = Announcement.query.get_or_404(ann_id)
+
+    if request.method == "POST":
+        ann.title = request.form.get("title")
+        ann.content = request.form.get("content")
+
+        file = request.files.get("image")
+        if file and file.filename != "":
+            if file.filename.rsplit(".", 1)[1].lower() in current_app.config["ALLOWED_EXTENSIONS"]:
+                filename = secure_filename(file.filename)
+                save_path = os.path.join(current_app.config["UPLOAD_FOLDER_ANNOUNCEMENTS"], filename)
+                file.save(save_path)
+                ann.image_url = f"uploads/announcements/{filename}"
+
+        db.session.commit()
+        flash("Cập nhật thông báo thành công!", "success")
+        return redirect(url_for("admin.announcement_detail", ann_id=ann.id))
+
+    return render_template("admin/edit_announcement.html", ann=ann)
+
+# Xoá Announcement
+@admin_bp.route("/announcements/<int:ann_id>/delete", methods=["POST"])
+@login_required
+def delete_announcement(ann_id):
+    ann = Announcement.query.get_or_404(ann_id)
+    db.session.delete(ann)
+    db.session.commit()
+    flash("Đã xoá thông báo!", "success")
+    return redirect(url_for("admin.manage_announcements"))

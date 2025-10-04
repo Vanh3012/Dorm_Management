@@ -26,31 +26,65 @@
     </style>
 </head>
 
-<body class="bg-gray-100 text-gray-900 flex flex-col min-h-screen">
+<body class="bg-gray-50 text-gray-900 flex flex-col min-h-screen">
 
     <!-- Navbar -->
-    <nav class="bg-red-600 text-white p-4 flex justify-between items-center">
+    <nav
+        class="bg-gradient-to-r from-red-600 to-red-500 text-white shadow-md px-6 py-3 flex justify-between items-center">
         <div class="flex items-center space-x-4">
             <!-- Menu -->
-            <button id="menu-btn" class="text-2xl">☰</button>
-            <!-- Notifications -->
-            <button id="notif-btn" class="relative">
-                🔔
-                <span id="notif-count"
-                    class="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold px-1 rounded-full">3</span>
-            </button>
+            <button id="menu-btn" class="text-2xl hover:text-gray-200">☰</button>
+            <span class="font-semibold text-lg">Ký túc xá - PTIT</span>
         </div>
-        <div>
-            <a href="/auth/logout" class="bg-white text-red-600 px-3 py-1 rounded">Đăng xuất</a>
+
+        <!-- Notifications + Logout -->
+        <div class="flex items-center space-x-4">
+            <!-- Notifications -->
+            <div class="relative">
+                <button id="notifButton" class="relative">
+                    <span class="text-2xl">🔔</span>
+                    {% if unread_count and unread_count > 0 %}
+                    <span
+                        class="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                        {{ unread_count }}
+                    </span>
+                    {% endif %}
+                </button>
+                <!-- Dropdown -->
+                <div id="notifMenu" class="hidden absolute right-0 mt-3 w-80 bg-white shadow-lg rounded-lg z-50">
+                    <div class="p-4 border-b font-bold">Thông báo</div>
+                    <ul class="max-h-80 overflow-y-auto">
+                        {% for notif in notifications %}
+                        <li class="px-4 py-2 hover:bg-gray-50 border-b">
+                            {{ notif.message }}
+                            <span class="block text-xs text-gray-400">{{ notif.created_at.strftime('%d/%m/%Y %H:%M')
+                                }}</span>
+                        </li>
+                        {% else %}
+                        <li class="px-4 py-4 italic text-gray-500 text-center">Không có thông báo</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Logout -->
+            <a href="/auth/logout"
+                class="border border-white px-3 py-1 rounded hover:bg-white hover:text-red-600 transition">
+                Đăng xuất
+            </a>
         </div>
     </nav>
 
-    <!-- Sidebar Overlay -->
+    <!-- Sidebar -->
     <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40"></div>
     <aside id="sidebar" class="fixed top-0 left-0 w-64 h-full bg-white shadow-lg z-50">
-        <div class="p-4 border-b font-bold text-lg"><a href="{{ url_for('student.dashboard') }}">Trang chủ</a></div>
+        <div class="p-4 border-b font-bold text-lg">
+            <a href="{{ url_for('student.dashboard') }}">Trang chủ</a>
+        </div>
         <ul class="p-4 space-y-3">
-            <li><a href="{{ url_for('student.student_profile') }}" class="block hover:text-red-600">Hồ sơ cá nhân</a></li>
+            <li><a href="{{ url_for('student.announcements') }}" class="block hover:text-red-600">Thông báo</a></li>
+            <li><a href="{{ url_for('student.student_profile') }}" class="block hover:text-red-600">Hồ sơ cá nhân</a>
+            </li>
             <li><a href="{{ url_for('student.dorm_register') }}" class="block hover:text-red-600">Đăng ký phòng</a></li>
             <li><a href="{{ url_for('student.services') }}" class="block hover:text-red-600">Đăng ký dịch vụ</a></li>
             <li><a href="{{ url_for('student.payments') }}" class="block hover:text-red-600">Thanh toán</a></li>
@@ -60,59 +94,34 @@
         </ul>
     </aside>
 
-    <!-- Notifications Dropdown -->
-    <div id="notif-panel" class="hidden absolute top-16 left-16 bg-white shadow-lg w-80 rounded-lg z-40">
-        <div class="p-4 font-bold border-b">Thông báo</div>
-        <ul class="p-4 space-y-2">
-            <li class="border-b pb-2">Bạn đã đăng ký phòng thành công.</li>
-            <li class="border-b pb-2">Hạn đóng tiền phòng tháng 10 sắp đến.</li>
-            <li>Hệ thống sẽ bảo trì vào ngày 20/10.</li>
-        </ul>
-    </div>
-
     <!-- Nội dung chính -->
-    <main class="flex-grow container mx-auto px-4 py-8">
+    <main class="flex-grow ">
         {% block content %}{% endblock %}
     </main>
 
     <!-- Footer -->
-    <footer id="footer" class="bg-gray-800 text-white text-center py-4">
-        <p>Liên hệ: 0123 456 789 | Email: ktx@ptit.edu.vn</p>
-        <p>Địa chỉ: Hà Đông - Hoàng Quốc Việt - Ngọc Trục</p>
+    <footer id="footer" class="bg-gray-100 text-gray-700 border-t mt-8">
+        <div class="container mx-auto px-6 py-6 grid md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <p><b>Liên hệ:</b> 0123 456 789</p>
+                <p><b>Email:</b> ktx@ptit.edu.vn</p>
+                <p><b>Địa chỉ:</b> Hà Đông - Hoàng Quốc Việt - Ngọc Trục</p>
+            </div>
+            <div class="flex items-center md:justify-end">
+                <p>&copy; {{ year }} Ký túc xá - PTIT. All rights reserved.</p>
+            </div>
+        </div>
     </footer>
 
-    <!-- Script -->
-    <script>
-        const menuBtn = document.getElementById("menu-btn");
-        const sidebar = document.getElementById("sidebar");
-        const overlay = document.getElementById("overlay");
-        const notifBtn = document.getElementById("notif-btn");
-        const notifPanel = document.getElementById("notif-panel");
-
-        menuBtn.addEventListener("click", () => {
-            sidebar.classList.toggle("active");
-            overlay.classList.toggle("active");
-        });
-
-        overlay.addEventListener("click", () => {
-            sidebar.classList.remove("active");
-            overlay.classList.remove("active");
-        });
-
-        notifBtn.addEventListener("click", () => {
-            notifPanel.classList.toggle("hidden");
-        });
-    </script>
-
     <!-- Flash message -->
-    \<div id="flash-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm w-full">
+    <div id="flash-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm w-full">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, message in messages %}
         <div class="flash px-4 py-3 rounded-lg shadow-lg flex justify-between items-center
-                                    {% if category == 'success' %} bg-green-100 text-green-800
-                                    {% elif category == 'danger' %} bg-red-100 text-red-800
-                                    {% else %} bg-blue-100 text-blue-800 {% endif %}">
+            {% if category == 'success' %} bg-green-100 text-green-800
+            {% elif category == 'danger' %} bg-red-100 text-red-800
+            {% else %} bg-blue-100 text-blue-800 {% endif %}">
             <span>{{ message }}</span>
             <button class="flash-close font-bold">✕</button>
         </div>
@@ -120,10 +129,35 @@
         {% endif %}
         {% endwith %}
     </div>
-    
+
     <script>
+        // Sidebar toggle
+        const menuBtn = document.getElementById("menu-btn");
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("overlay");
+        menuBtn.addEventListener("click", () => {
+            sidebar.classList.toggle("active");
+            overlay.classList.toggle("active");
+        });
+        overlay.addEventListener("click", () => {
+            sidebar.classList.remove("active");
+            overlay.classList.remove("active");
+        });
+
+        // Notifications toggle
+        const notifButton = document.getElementById("notifButton");
+        const notifMenu = document.getElementById("notifMenu");
+        notifButton.addEventListener("click", (e) => {
+            e.stopPropagation();
+            notifMenu.classList.toggle("hidden");
+        });
+        document.addEventListener("click", () => {
+            notifMenu.classList.add("hidden");
+        });
+
+        // Flash auto-hide
         document.querySelectorAll('.flash').forEach((el) => {
-            setTimeout(() => { el.remove(); }, 3500); // auto ẩn sau 3.5s
+            setTimeout(() => { el.remove(); }, 3500);
             el.querySelector('.flash-close').onclick = () => el.remove();
         });
     </script>

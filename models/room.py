@@ -26,7 +26,7 @@ class Room(db.Model):
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
     # Quan hệ
-    applications = db.relationship("Application", back_populates="room", cascade="all, delete")
+    applications = db.relationship("ApplicationRoom", back_populates="room", cascade="all, delete")
     bookings = db.relationship("Booking", back_populates="room", cascade="all, delete")
     payments = db.relationship("Payment", back_populates="room", cascade="all, delete")
     images = db.relationship(

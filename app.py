@@ -2,7 +2,7 @@ from flask import Flask, render_template
 from flask_login import LoginManager
 from dotenv import load_dotenv
 import os
-from extensions import db   #  import db từ extensions
+from extensions import db, mail
 from flask_migrate import Migrate
 from datetime import datetime
 
@@ -22,21 +22,45 @@ os.makedirs(UPLOAD_FOLDER_COMPLAINS, exist_ok=True)
 UPLOAD_FOLDER_ROOMS = os.path.join(os.path.dirname(__file__), "static", "img","room")
 os.makedirs(UPLOAD_FOLDER_ROOMS, exist_ok=True)
 
+#Lưu và update ảnh announcements
+UPLOAD_FOLDER_ANNOUNCEMENTS = os.path.join(os.path.dirname(__file__), "static", "uploads", "announcements")
+os.makedirs(UPLOAD_FOLDER_ANNOUNCEMENTS, exist_ok=True)
+
+# Lưu & upload ảnh hồ sơ ApplicationRoom
+UPLOAD_FOLDER_APPLICATIONS = os.path.join(os.path.dirname(__file__), "static", "uploads", "applications")
+os.makedirs(os.path.join(UPLOAD_FOLDER_APPLICATIONS, "priority"), exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_FOLDER_APPLICATIONS, "citizen"), exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_FOLDER_APPLICATIONS, "student_photo"), exist_ok=True)
+
+app.config["UPLOAD_FOLDER_APPLICATIONS"] = UPLOAD_FOLDER_APPLICATIONS
 app.config["UPLOAD_FOLDER_COMPLAINS"] = UPLOAD_FOLDER_COMPLAINS
 app.config["UPLOAD_FOLDER_ROOMS"] = UPLOAD_FOLDER_ROOMS
+app.config["UPLOAD_FOLDER_ANNOUNCEMENTS"] = UPLOAD_FOLDER_ANNOUNCEMENTS
 app.config["ALLOWED_EXTENSIONS"] = {"png", "jfif", "jpg", "jpeg", "gif"}
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5MB/file
 
-# Khởi tạo db
+# Cấu hình Flask-Mail
+app.config.update(
+    MAIL_SERVER="smtp.gmail.com",
+    MAIL_PORT=587,
+    MAIL_USE_TLS=True,
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),          # ví dụ: yourname@gmail.com
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),          # App password 16 ký tự
+    MAIL_DEFAULT_SENDER=os.getenv("MAIL_DEFAULT_SENDER", os.getenv("MAIL_USERNAME")),
+)
+
+
+# Khởi tạo db, migrate, mail
 db.init_app(app)
 migrate = Migrate(app, db)
+mail.init_app(app)
 
 # Login Manager
 login_manager = LoginManager(app)
 login_manager.login_view = "auth.login"
 
 # Import models sau khi db đã init
-from models import User, Room, Application, Booking, Payment, ServiceRequest
+from models import User, Room, ApplicationRoom, Booking, Payment, ServiceRequest
 
 
 # Import blueprints

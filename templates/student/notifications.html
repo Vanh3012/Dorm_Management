@@ -1,0 +1,15 @@
+{% extends "student/student_base.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-6">🔔 Tất cả thông báo</h2>
+
+<div class="space-y-3">
+    {% for n in notifs %}
+    <div class="bg-white shadow rounded-lg p-4 {% if not n.is_read %} border-l-4 border-blue-500 {% endif %}">
+        <p class="text-gray-800">{{ n.message }}</p>
+        <p class="text-gray-500 text-xs mt-1">{{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+    </div>
+    {% else %}
+    <p class="italic text-gray-500">Bạn chưa có thông báo nào.</p>
+    {% endfor %}
+</div>
+{% endblock %}

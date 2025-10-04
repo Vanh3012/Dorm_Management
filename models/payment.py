@@ -4,7 +4,7 @@ class Payment(db.Model):
     __tablename__ = "payments"
 
     id = db.Column(db.Integer, primary_key=True)
-    application_id = db.Column(db.Integer, db.ForeignKey("applications.id"), nullable=True)
+    application_id = db.Column(db.Integer, db.ForeignKey("application_rooms.id"), nullable=True)
     booking_id = db.Column(db.Integer, db.ForeignKey("bookings.id", ondelete="CASCADE"), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False)
@@ -47,8 +47,8 @@ class Payment(db.Model):
     booking = db.relationship("Booking", back_populates="payments")
     user = db.relationship("User", back_populates="payments")
     room = db.relationship("Room", back_populates="payments")
+    application = db.relationship("ApplicationRoom", back_populates="payments")
 
 
 
-# nullable cho booking_id
-booking_id = db.Column(db.Integer, db.ForeignKey("bookings.id"), nullable=True)
+

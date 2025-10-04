@@ -6,7 +6,7 @@ class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False)
-    application_id = db.Column(db.Integer, db.ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
+    application_id = db.Column(db.Integer, db.ForeignKey("application_rooms.id", ondelete="CASCADE"), nullable=False)
 
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date)
@@ -22,5 +22,5 @@ class Booking(db.Model):
     # Quan hệ
     user = db.relationship("User", back_populates="bookings")
     room = db.relationship("Room", back_populates="bookings")
-    application = db.relationship("Application", back_populates="bookings")
+    application = db.relationship("ApplicationRoom", back_populates="bookings")
     payments = db.relationship("Payment", back_populates="booking", cascade="all, delete")

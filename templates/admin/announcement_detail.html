@@ -1,0 +1,38 @@
+{% extends "admin/admin_base.html" %}
+{% block content %}
+<div class="bg-white shadow rounded p-6">
+    <h2 class="text-2xl font-bold mb-4">{{ ann.title }}</h2>
+    <p class="text-sm text-gray-500">
+        Đăng lúc {{ ann.created_at.strftime('%d/%m/%Y %H:%M') }}
+        bởi {{ ann.admin.fullname if ann.admin else "Admin" }}
+    </p>
+
+    {% if ann.image_url %}
+    <div class="my-4">
+        <img src="{{ url_for('static', filename=ann.image_url) }}" alt="Ảnh thông báo"
+            class="w-full max-h-[400px] object-cover rounded">
+    </div>
+    {% endif %}
+
+    <div class="prose max-w-none">
+        {{ ann.content | safe }}
+    </div>
+
+    <div class="mt-6 flex gap-3">
+        <a href="{{ url_for('admin.manage_announcements') }}"
+            class="px-4 py-2 rounded bg-gray-500 hover:bg-gray-600 text-white">
+            ← Quay lại
+        </a>
+        <a href="{{ url_for('admin.edit_announcement', ann_id=ann.id) }}"
+            class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">
+            ✏️ Sửa
+        </a>
+        <form action="{{ url_for('admin.delete_announcement', ann_id=ann.id) }}" method="POST"
+            onsubmit="return confirm('Bạn chắc chắn muốn xoá thông báo này?')">
+            <button type="submit" class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white">
+                🗑️ Xoá
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

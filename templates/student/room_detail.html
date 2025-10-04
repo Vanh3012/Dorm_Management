@@ -1,12 +1,13 @@
 {% extends "student/student_base.html" %}
 {% block content %}
+
 <div class="bg-white shadow rounded p-6">
-    <h2 class="text-2xl font-bold mb-4">Thông tin phòng {{ room.room_number }}</h2>
+    <h2 class="text-2xl font-bold mb-4 text-red-600">Thông tin phòng {{ room.room_number }}</h2>
 
     <!-- Bố cục 2 cột -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         <!-- Thông tin phòng (trái) -->
-        <div>
+        <div class="space-y-2 text-gray-700">
             <p><b>Cơ sở:</b> {{ room.address }}</p>
             <p><b>Khu:</b> {{ room.block }}</p>
             <p><b>Sức chứa:</b> {{ room.capacity }}</p>
@@ -21,11 +22,11 @@
             <div class="mt-6">
                 {% if room.available > 0 %}
                 <!-- Nút mở modal -->
-                <button onclick="openModal()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
-                    Đăng ký
+                <button onclick="openModal()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded">
+                    📝 Đăng ký phòng
                 </button>
                 {% else %}
-                <button class="bg-black text-white px-4 py-2 rounded cursor-not-allowed" disabled>
+                <button class="bg-gray-400 text-white px-5 py-2 rounded cursor-not-allowed" disabled>
                     Hết chỗ - Không thể đăng ký
                 </button>
                 {% endif %}
@@ -61,55 +62,158 @@
 </div>
 
 <!-- Modal đăng ký -->
-<div id="registerModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white w-full max-w-lg rounded-lg shadow-lg p-6 relative">
-        <h3 class="text-xl font-bold mb-4">Đăng ký phòng {{ room.room_number }}</h3>
+<div id="registerModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 z-50 overflow-y-auto">
+    <!-- Wrapper để căn giữa modal -->
+    <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white w-full max-w-3xl rounded-lg shadow-lg p-6 relative max-h-[90vh] overflow-y-auto">
+        <h3 class="text-xl font-bold mb-6 text-center text-red-600"> Đơn đăng ký phòng {{ room.room_number }}</h3>
 
-        <form action="{{ url_for('student.register_room', room_id=room.id) }}" method="POST" class="space-y-4">
-            <div>
-                <label class="block font-medium">Họ và tên</label>
-                <input type="text" name="fullname" value="{{ user.fullname }}" required
-                    class="w-full border px-3 py-2 rounded">
-            </div>
-            <div>
-                <label class="block font-medium">MSSV</label>
-                <input type="text" name="student_id" value="{{ user.student_id }}" required
-                    class="w-full border px-3 py-2 rounded">
-            </div>
-            <div>
-                <label class="block font-medium">Lớp</label>
-                <input type="text" name="class_id" value="{{ user.class_id }}" required
-                    class="w-full border px-3 py-2 rounded">
-            </div>
-            <div>
-                <label class="block font-medium">Căn cước công dân</label>
-                <input type="text" name="citizen_id" value="{{ user.citizen_id }}" required
-                    class="w-full border px-3 py-2 rounded">
-            </div>
-            <div>
-                <label class="block font-medium">Email</label>
-                <input type="email" name="email" value="{{ user.email }}" required
-                    class="w-full border px-3 py-2 rounded">
-            </div>
-            <div>
-                <label class="block font-medium">Số điện thoại</label>
-                <input type="text" name="phone_number" value="{{ user.phone_number }}" required
-                    class="w-full border px-3 py-2 rounded">
-            </div>
+        <form action="{{ url_for('student.register_room', room_id=room.id) }}" method="POST"
+            enctype="multipart/form-data" class="space-y-6">
 
-            <div class="flex justify-end gap-4 mt-4">
+            <!-- Thông tin cá nhân -->
+            <fieldset class="border rounded-lg p-4">
+                <legend class="px-2 text-sm font-semibold text-gray-700">Thông tin cá nhân</legend>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div>
+                        <label class="block text-sm font-medium">Họ và tên</label>
+                        <input type="text" name="fullname" value="{{ user.fullname }}" required
+                            class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-red-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">MSSV</label>
+                        <input type="text" name="student_id" value="{{ user.student_id }}" required
+                            class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-red-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Lớp</label>
+                        <input type="text" name="class_id" value="{{ user.class_id }}" required
+                            class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-red-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">CCCD</label>
+                        <input type="text" name="citizen_id" value="{{ user.citizen_id }}" required
+                            class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-red-500">
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Thông tin liên hệ -->
+            <fieldset class="border rounded-lg p-4">
+                <legend class="px-2 text-sm font-semibold text-gray-700">Thông tin liên hệ</legend>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div>
+                        <label class="block text-sm font-medium">Email</label>
+                        <input type="email" name="email" value="{{ user.email }}" required
+                            class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-red-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Số điện thoại</label>
+                        <input type="text" name="phone_number" value="{{ user.phone_number }}" required
+                            class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-red-500">
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Địa chỉ / quê quán -->
+            <fieldset class="border rounded-lg p-4">
+                <legend class="px-2 text-sm font-semibold text-gray-700">Địa chỉ & Quê quán</legend>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div>
+                        <label class="block text-sm font-medium">Địa chỉ thường trú</label>
+                        <input type="text" name="address" class="w-full border px-3 py-2 rounded">
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Người thân -->
+            <fieldset class="border rounded-lg p-4">
+                <legend class="px-2 text-sm font-semibold text-gray-700">Thông tin người thân</legend>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                    <div>
+                        <label class="block text-sm font-medium">Người thân 1 - Họ tên</label>
+                        <input type="text" name="relative1_name" class="w-full border px-3 py-2 rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">SĐT NT1</label>
+                        <input type="text" name="relative1_phone" class="w-full border px-3 py-2 rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Năm sinh NT1</label>
+                        <input type="text" name="relative1_birthyear" class="w-full border px-3 py-2 rounded">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div>
+                        <label class="block text-sm font-medium">Người thân 2 - Họ tên</label>
+                        <input type="text" name="relative2_name" class="w-full border px-3 py-2 rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">SĐT NT2</label>
+                        <input type="text" name="relative2_phone" class="w-full border px-3 py-2 rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Năm sinh NT2</label>
+                        <input type="text" name="relative2_birthyear" class="w-full border px-3 py-2 rounded">
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Chính sách / khó khăn -->
+            <fieldset class="border rounded-lg p-4">
+                <legend class="px-2 text-sm font-semibold text-gray-700">Chính sách / Hoàn cảnh</legend>
+                <div class="space-y-3 mt-2">
+                    <div>
+                        <label class="block text-sm font-medium">Thuộc diện chính sách, xã hội</label>
+                        <input type="text" name="policy_type" placeholder="VD: Con liệt sĩ, hộ nghèo..."
+                            class="w-full border px-3 py-2 rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Hoàn cảnh gia đình khó khăn</label>
+                        <textarea name="family_income" rows="3"
+                            placeholder="Mô tả thu nhập gia đình, đất đai, tư liệu sản xuất..."
+                            class="w-full border px-3 py-2 rounded"></textarea>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Upload -->
+            <fieldset class="border rounded-lg p-4">
+                <legend class="px-2 text-sm font-semibold text-gray-700">Upload hồ sơ</legend>
+                <div class="space-y-3 mt-2">
+                    <div>
+                        <label class="block text-sm font-medium">Ảnh 3x4</label>
+                        <input type="file" name="student_photo" accept="image/*" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Ảnh CCCD</label>
+                        <input type="file" name="citizen_proof" accept="image/*" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Minh chứng ưu tiên (nếu có)</label>
+                        <input type="file" name="priority_proof" accept="image/*" class="w-full">
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Buttons -->
+            <div class="flex justify-end gap-3">
                 <button type="button" onclick="closeModal()"
-                    class="px-4 py-2 rounded bg-gray-400 text-white hover:bg-gray-500">
-                    Hủy
-                </button>
-                <button type="submit" class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">
-                    Gửi đơn đăng ký
-                </button>
+                    class="px-4 py-2 rounded bg-gray-400 text-white hover:bg-gray-500">Hủy</button>
+                <button type="submit" class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">Gửi đơn đăng
+                    ký</button>
             </div>
         </form>
 
-        <!-- Nút đóng X -->
-        <button onclick="closeModal()" class="absolute top-3 right-3 text-gray-500 text-xl">✕</button>
+        <button onclick="closeModal()"
+            class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl">✕</button>
+    </div>
+</div>
+
+        <!-- Nút đóng -->
+        <button onclick="closeModal()"
+            class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl">✕</button>
+    </div>
     </div>
 </div>
 
@@ -122,7 +226,6 @@
         document.getElementById("registerModal").classList.add("hidden");
     }
 
-    // Slider
     (() => {
         const root = document.getElementById('roomSlider');
         if (!root) return;
@@ -146,4 +249,5 @@
         if (slides.length > 1) setInterval(() => show((i + 1) % slides.length), 5000);
     })();
 </script>
+
 {% endblock %}

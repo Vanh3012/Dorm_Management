@@ -31,7 +31,7 @@ class User(db.Model, UserMixin):
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
     # Quan hệ với các bảng khác (chỉ cần tên class, không cần import Application/Booking/Payment ở đây)
-    applications = db.relationship("Application", back_populates="user", lazy=True)
+    applications = db.relationship("ApplicationRoom", back_populates="user", lazy=True)
     bookings = db.relationship("Booking", back_populates="user", lazy=True)
     payments = db.relationship("Payment", back_populates="user", lazy=True)
     complains = db.relationship("Complain", back_populates="user")
@@ -40,6 +40,8 @@ class User(db.Model, UserMixin):
     back_populates="user",
     cascade="all, delete-orphan"
     )
+    notifications = db.relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
