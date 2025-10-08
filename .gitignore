@@ -1,0 +1,36 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.so
+*.egg-info/
+*.egg
+build/
+dist/
+
+# --- Environment ---
+.env
+venv/
+.venv/
+env/
+ENV/
+
+# --- IDEs & Editors ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- OS generated ---
+.DS_Store
+Thumbs.db
+
+# --- Migrations cache ---
+migrations/__pycache__/
+migrations/versions/__pycache__/
+
+# --- Other temporary files ---
+*.log
+*.sqlite3
