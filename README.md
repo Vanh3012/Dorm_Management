@@ -157,5 +157,5 @@ flask run
 
 ---
 
-💬 **Tác giả:** Vanh – Sinh viên PTIT
+💬 **Tác giả:** Vanh
 Dự án phục vụ mục đích học tập và thực hành web full-stack bằng Flask + MySQL.
