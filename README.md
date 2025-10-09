@@ -1,17 +1,18 @@
 # 🏫 Hệ Thống Quản Lý Ký Túc Xá (Dorm Management System)
 
 Đây là dự án web **quản lý ký túc xá sinh viên**, được xây dựng bằng **Flask (Python)** và **MySQL**.
-Ứng dụng giúp sinh viên đăng ký phòng, nộp tiền, gửi phản ánh và giúp admin quản lý phòng, hóa đơn, khiếu nại, thông báo, v.v.
+Ứng dụng cho phép sinh viên đăng ký phòng, gửi khiếu nại, thanh toán, và giúp admin quản lý phòng, người dùng, thông báo, v.v.
 
 ---
 
-## ⚙️ 1. Yêu cầu môi trường
+## ⚙️ 1️⃣ Chuẩn bị môi trường
 
-Để chạy được dự án này, máy tính của bạn cần có:
+### Yêu cầu cần có
 
-* **Python** ≥ 3.10
-* **MySQL Server** (đã cài đặt và chạy)
+* **Python ≥ 3.10**
+* **MySQL Server** (đã cài và chạy)
 * **Git** (để clone project)
+* (Khuyến khích) **VS Code** để chạy và chỉnh sửa tiện hơn
 
 > 💡 Kiểm tra nhanh:
 >
@@ -22,7 +23,28 @@
 
 ---
 
-## 🚀 2. Tải mã nguồn về
+## 📁 2️⃣ Tạo thư mục test project
+
+Tạo một thư mục mới để test project từ đầu (mô phỏng người dùng mới):
+
+### Windows:
+
+```bash
+cd D:\
+mkdir <tên_thư_mục>
+cd <tên_thư_mục>
+```
+
+### macOS/Linux:
+
+```bash
+mkdir ~/<tên_thư_mục>
+cd ~/<tên_thư_mục>
+```
+
+---
+
+## 📥 3️⃣ Clone project về máy
 
 ```bash
 git clone https://github.com/Vanh3012/Dorm_Management.git
@@ -31,23 +53,43 @@ cd Dorm_Management
 
 ---
 
-## 🧩 3. Tạo môi trường ảo và cài thư viện
+## 🧱 4️⃣ (Tùy chọn) Tạo môi trường ảo (virtual environment)
+
+Giúp quản lý thư viện gọn gàng và không ảnh hưởng các project khác.
+
+### Windows:
 
 ```bash
 python -m venv venv
-venv\Scripts\activate      # (Windows)
-# source venv/bin/activate  # (macOS/Linux)
-
-pip install -r requirements.txt
+venv\Scripts\activate
 ```
 
-> ⚠️ Nếu cài bị lỗi liên quan đến MySQL, hãy chắc rằng bạn đã cài **mysql-connector-python** (đã có sẵn trong file requirements.txt).
+### macOS/Linux:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+> Khi kích hoạt thành công, bạn sẽ thấy đầu dòng terminal có `(venv)`.
 
 ---
 
-## 🧱 4. Tạo cơ sở dữ liệu MySQL
+## 📦 5️⃣ Cài các thư viện cần thiết
 
-Mở **MySQL Workbench** hoặc **MySQL Command Line**, rồi chạy lệnh sau:
+```bash
+pip install -r requirements.txt
+```
+
+Nếu không dùng môi trường ảo, bạn vẫn có thể chạy được — chỉ cần đảm bảo pip cài toàn cục.
+
+> 💡 Nếu gặp lỗi `No module named 'flask'` hoặc tương tự → chạy lại lệnh trên.
+
+---
+
+## 🗄️ 6️⃣ Tạo database MySQL
+
+Mở **MySQL Workbench** hoặc terminal MySQL rồi tạo database mới để test riêng:
 
 ```sql
 CREATE DATABASE dorm_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -55,39 +97,43 @@ CREATE DATABASE dorm_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 
 ---
 
-## 🔐 5. Tạo file `.env`
+## 🔐 7️⃣ Cấu hình file `.env`
 
-Trong thư mục chính của project, tạo file tên `.env` và dán nội dung ví dụ sau:
+Trong thư mục `Dorm_Management`, tạo file mới tên **`.env`** (nếu chưa có) hoặc mở file sẵn có rồi chỉnh lại:
 
 ```bash
 FLASK_APP=app.py
 FLASK_ENV=development
-SECRET_KEY=supersecretkey
+SECRET_KEY=your_secret_key
 
-# Đường dẫn kết nối MySQL (sửa username, password nếu khác)
-DATABASE_URL=mysql+mysqlconnector://root:matkhau@localhost:3306/dorm_management
+# Đường kết nối MySQL (đổi mật khẩu và tên DB nếu cần)
+DATABASE_URL=mysql+mysqlconnector://root:mat_khau_database@localhost:3306/dorm_management
 ```
 
-> ⚠️ Nếu mật khẩu MySQL của bạn có ký tự đặc biệt (ví dụ `@`), hãy mã hóa bằng **URL encoding**.
-> Ví dụ: `@` → `%40` → `root:%40Anh3112005@localhost:3306/dorm_management`
+> ⚠️ Nếu mật khẩu MySQL chứa ký tự đặc biệt như `@`, hãy thay bằng `%40`.
+> Ví dụ: `root:%40levietanh@localhost:3306/dorm_test`
 
 ---
 
-## 🗄️ 6. Khởi tạo database (tạo bảng)
-
-Sau khi đã có `.env`, chạy lệnh:
+## 🧬 8️⃣ Khởi tạo cấu trúc bảng trong database
 
 ```bash
 flask db upgrade
 ```
 
-> 💡 Nếu gặp lỗi `Unknown database 'dorm_management'` → bạn chưa tạo database ở bước 4.
+Nếu thấy log như:
+
+```
+INFO  [alembic.runtime.migration] Running upgrade ...
+```
+
+→ Làm việc thành công ✅
+
+> Nếu báo lỗi `Unknown database`, nghĩa là bạn chưa tạo DB ở bước 6.
 
 ---
 
-## 👑 7. Tạo tài khoản admin mặc định
-
-Sau khi migrate xong, chạy file tạo admin:
+## 👑 9️⃣ Tạo tài khoản admin mặc định
 
 ```bash
 python create_admin.py
@@ -99,63 +145,92 @@ Nếu thành công, bạn sẽ thấy:
 ✅ Admin account created successfully!
 ```
 
-> Thông tin mặc định:
->
-> * Username: `admin`
-> * Password: `admin123`
-> * Email: `admin@example.com`
+Thông tin đăng nhập mặc định:
+
+* Username: `admin`
+* Password: `admin123`
 
 ---
 
-## 🌐 8. Chạy ứng dụng
+## 🚀 🔟 Chạy ứng dụng web
 
 ```bash
 flask run
 ```
 
-Sau khi chạy, mở trình duyệt tại:
+Sau khi chạy, Flask sẽ in ra địa chỉ:
+
+```
+* Running on http://127.0.0.1:5000
+```
+
+Mở trình duyệt và truy cập:
 👉 [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
-Nếu bạn thấy giao diện đăng nhập / trang chủ → nghĩa là setup thành công 🎉
+Nếu hiện giao diện đăng nhập hoặc trang chủ là OK 🎉
 
 ---
 
-## 🧰 9. Một số lỗi thường gặp
+## 🔁 11️⃣ Lần sau muốn chạy lại web
 
-| Lỗi                                  | Nguyên nhân                          | Cách khắc phục                             |
-| ------------------------------------ | ------------------------------------ | ------------------------------------------ |
-| `ModuleNotFoundError`                | Chưa cài đủ thư viện                 | `pip install -r requirements.txt`          |
-| `Unknown database`                   | Chưa tạo DB MySQL                    | Tạo DB bằng câu lệnh `CREATE DATABASE ...` |
-| `RuntimeError: No application found` | Thiếu biến `FLASK_APP`               | Thêm dòng `FLASK_APP=app.py` vào `.env`    |
-| `Admin already exists!`              | Chạy lại `create_admin.py` nhiều lần | Không cần lo, chỉ tạo admin một lần        |
+Không cần cài đặt lại từ đầu.
 
----
-
-## 💡 10. Tóm tắt nhanh (dành cho người quen Flask)
+### Nếu dùng môi trường ảo:
 
 ```bash
-git clone https://github.com/Vanh3012/Dorm_Management.git
-cd Dorm_Management
-python -m venv venv
+cd D:\dorm_test\Dorm_Management
 venv\Scripts\activate
-pip install -r requirements.txt
-CREATE DATABASE dorm_management;
-flask db upgrade
-python create_admin.py
 flask run
 ```
 
-👉 Mở: [http://127.0.0.1:5000](http://127.0.0.1:5000)
+### Nếu không dùng môi trường ảo:
+
+```bash
+cd D:\dorm_test\Dorm_Management
+flask run
+```
+
+Dữ liệu cũ trong MySQL vẫn còn nguyên.
 
 ---
 
-## ✨ Ghi chú
+## ❌ 12️⃣ Các lỗi thường gặp & cách khắc phục
 
-* Khi chạy lần đầu, project sẽ tự tạo thư mục upload nếu chưa có.
-* Nếu muốn tắt chế độ debug, sửa trong `.env`: `FLASK_ENV=production`.
-* Có thể deploy dễ dàng lên **Render**, **Railway**, hoặc **PythonAnywhere**.
+| Lỗi                       | Nguyên nhân                              | Cách xử lý                                           |
+| ------------------------- | ---------------------------------------- | ---------------------------------------------------- |
+| `Unknown database`        | Chưa tạo DB hoặc sai tên DB trong `.env` | Tạo DB mới bằng Workbench / sửa `.env`               |
+| `No module named 'flask'` | Chưa cài Flask                           | `pip install -r requirements.txt`                    |
+| `Admin already exists`    | Đã chạy `create_admin.py` trước đó       | Không sao, admin đã có sẵn                           |
+| Web hiện dữ liệu cũ       | `.env` vẫn trỏ DB cũ (`dorm_management`) | Đổi thành `dorm_test` và chạy lại `flask db upgrade` |
+| Không gửi được mail       | Chưa cấu hình Gmail App Password         | Có thể tạm bỏ qua nếu chưa dùng tính năng gửi mail   |
 
 ---
 
-💬 **Tác giả:** Vanh
-Dự án phục vụ mục đích học tập và thực hành web full-stack bằng Flask + MySQL.
+## 🧹 13️⃣ Reset database test (nếu muốn làm mới hoàn toàn)
+
+Mở MySQL Workbench và chạy:
+
+```sql
+DROP DATABASE dorm_test;
+CREATE DATABASE dorm_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Sau đó chạy lại:
+
+```bash
+flask db upgrade
+python create_admin.py
+```
+
+---
+
+##  Mẹo thêm
+
+* Có thể chạy app mà không cần venv nếu đã cài đủ thư viện toàn cục.
+* Nếu muốn người khác truy cập web → cần deploy lên **Render / Railway / VPS**.
+* Thư mục `static/img/room` sẽ tự tạo khi upload ảnh.
+
+---
+
+ **Tác giả:** Vanh 
+ Dự án học tập: Quản lý ký túc xá bằng Flask + MySQL.
