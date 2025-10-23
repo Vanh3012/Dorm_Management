@@ -1,6 +1,8 @@
 {% extends "student/student_base.html" %}
 {% block content %}
-<div class="relative w-full h-[calc(100vh-64px)] overflow-hidden">
+
+<!-- Hero / Carousel -->
+<div class="relative w-full h-[70vh] overflow-hidden rounded-b-2xl shadow-lg">
     <div id="carousel" class="flex transition-transform duration-700 ease-in-out h-full">
         <img src="{{ url_for('static', filename='img/ptit1.png') }}" class="w-full flex-shrink-0 object-cover h-full"
             alt="Ảnh 1">
@@ -12,15 +14,11 @@
 
     <!-- Nút điều hướng -->
     <button onclick="prevSlide()"
-        class="absolute top-1/2 left-4 -translate-y-1/2 bg-white/30 hover:bg-white/70 text-black rounded-full p-2">
-        ‹
-    </button>
+        class="absolute top-1/2 left-4 -translate-y-1/2 bg-white/30 hover:bg-white/70 text-black rounded-full p-2">‹</button>
     <button onclick="nextSlide()"
-        class="absolute top-1/2 right-4 -translate-y-1/2 bg-white/30 hover:bg-white/70 text-black rounded-full p-2">
-        ›
-    </button>
+        class="absolute top-1/2 right-4 -translate-y-1/2 bg-white/30 hover:bg-white/70 text-black rounded-full p-2">›</button>
 
-    <!-- Chấm chỉ số -->
+    <!-- Dots -->
     <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
         <span class="dot w-3 h-3 bg-white rounded-full cursor-pointer" onclick="goToSlide(0)"></span>
         <span class="dot w-3 h-3 bg-white/50 rounded-full cursor-pointer" onclick="goToSlide(1)"></span>
@@ -28,7 +26,67 @@
     </div>
 </div>
 
+<!-- Tiêu đề chính (ra ngoài ảnh) -->
+<section class="mt-10 text-center">
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Chào mừng {{ current_user.fullname }}</h1>
+    <p class="text-gray-500 mt-2 text-base">Hệ thống Quản lý Ký túc xá PTIT</p>
+</section>
+
+<!-- Thông tin nhanh -->
+<section class="mt-10 max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-white shadow-md rounded-xl p-6 border-t-4 border-red-600 hover:shadow-lg transition">
+        <h3 class="text-sm font-semibold text-gray-600 mb-1">Hóa đơn chưa thanh toán</h3>
+        <p class="text-3xl font-bold text-red-600">{{ unpaid_bills }}</p>
+        <p class="text-sm text-gray-500 mt-1">Vui lòng thanh toán đúng hạn</p>
+    </div>
+
+    <div class="bg-white shadow-md rounded-xl p-6 border-t-4 border-blue-600 hover:shadow-lg transition">
+        <h3 class="text-sm font-semibold text-gray-600 mb-1">Thông báo mới</h3>
+        <p class="text-3xl font-bold text-blue-600">{{ announcements_count }}</p>
+        <p class="text-sm text-gray-500 mt-1">Từ ban quản lý ký túc xá</p>
+    </div>
+
+    <div class="bg-white shadow-md rounded-xl p-6 border-t-4 border-green-600 hover:shadow-lg transition">
+        <h3 class="text-sm font-semibold text-gray-600 mb-1">Dịch vụ đang xử lý</h3>
+        <p class="text-3xl font-bold text-green-600">{{ active_services }}</p>
+        <p class="text-sm text-gray-500 mt-1">Vui lòng chờ xác nhận hoàn tất</p>
+    </div>
+</section>
+
+<!-- Tin tức mới nhất -->
+<section class="max-w-6xl mx-auto px-6 mt-14 mb-16">
+    <h2 class="text-2xl font-bold text-gray-800 mb-5">📢 Thông báo mới nhất</h2>
+
+    {% if latest_announcements %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for ann in latest_announcements %}
+        <div class="bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition overflow-hidden">
+            {% if ann.image_url %}
+            <div class="h-40 w-full bg-gray-50 flex justify-center">
+                <img src="{{ url_for('static', filename=ann.image_url) }}"
+                    class="h-full w-auto object-contain hover:opacity-90 transition" alt="Announcement image">
+            </div>
+            {% endif %}
+            <div class="p-4">
+                <h3 class="font-bold text-gray-800 text-lg mb-1">{{ ann.title }}</h3>
+                <p class="text-sm text-gray-600 mb-3">
+                    {{ ann.content[:120] }}{% if ann.content|length > 120 %}...{% endif %}
+                </p>
+                <a href="{{ url_for('student.announcement_detail', ann_id=ann.id) }}"
+                    class="text-blue-600 hover:underline text-sm">
+                    Xem chi tiết →
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500 italic text-center">Hiện chưa có thông báo mới.</p>
+    {% endif %}
+</section>
+
 <script>
+    // --- Slideshow ---
     let currentSlide = 0;
     const carousel = document.getElementById("carousel");
     const dots = document.querySelectorAll(".dot");
@@ -57,7 +115,7 @@
         updateSlide();
     }
 
-    setInterval(nextSlide, 5000); // Tự động chạy sau 5s
+    setInterval(nextSlide, 5000);
     updateSlide();
 </script>
 

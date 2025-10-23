@@ -1,38 +1,63 @@
-{% extends "student_base.html" %}
+{% extends "student/student_base.html" %}
 {% block content %}
-<div class="bg-white p-6 rounded-lg shadow-md max-w-5xl mx-auto">
-    <h2 class="text-2xl font-bold mb-4">Thông tin cá nhân</h2>
-    <p><strong>Họ tên:</strong> {{ user.fullname }}</p>
-    <p><strong>MSSV:</strong> {{ user.student_id }}</p>
-    <p><strong>Lớp:</strong> {{ user.class_id }}</p>
-    <p><strong>Email:</strong> {{ user.email }}</p>
-    <p><strong>Số điện thoại:</strong> {{ user.phone_number }}</p>
-    <p><strong>CCCD:</strong> {{ user.citizen_id }}</p>
 
-    {% if room %}
-    <div class="mt-4 p-4 bg-gray-100 rounded">
-        <p><strong>Phòng:</strong> {{ room.room_number }}</p>
-        <p><strong>Dãy:</strong> {{ room.block }}</p>
-        <p><strong>Cơ sở:</strong> {{ room.address }}</p>
-
-        {% if booking and booking.status == "active" %}
-        <form action="{{ url_for('student.return_room', booking_id=booking.id) }}" method="POST" class="mt-4"
-            onsubmit="return confirm('Bạn có chắc chắn muốn trả phòng này không?');">
-            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
-                Trả phòng
-            </button>
-        </form>
-        {% endif %}
-
-
+<section class="bg-white shadow-sm rounded-xl mt-8 mx-8 px-10 py-8">
+    <!-- Header -->
+    <div class="border-b pb-4 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Thông tin cá nhân</h2>
+        <p class="text-gray-500 text-sm mt-1">Cập nhật và xem thông tin phòng ký túc xá của bạn</p>
     </div>
-    {% else %}
-    <p class="mt-4 text-gray-500">Bạn chưa được sắp xếp vào phòng.</p>
-    {% endif %}
 
-    <a href="{{ url_for('student.update_profile') }}"
-        class="mt-6 inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-        Sửa thông tin
-    </a>
-</div>
+    <!-- Nội dung chính -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <!-- Thông tin cá nhân -->
+        <div>
+            <div class="space-y-3 text-gray-800">
+                <p><span class="font-semibold text-gray-600">Họ tên:</span> {{ user.fullname }}</p>
+                <p><span class="font-semibold text-gray-600">MSSV:</span> {{ user.student_id }}</p>
+                <p><span class="font-semibold text-gray-600">Lớp:</span> {{ user.class_id }}</p>
+                <p><span class="font-semibold text-gray-600">Email:</span> {{ user.email }}</p>
+                <p><span class="font-semibold text-gray-600">Số điện thoại:</span> {{ user.phone_number }}</p>
+                <p><span class="font-semibold text-gray-600">CCCD:</span> {{ user.citizen_id }}</p>
+            </div>
+
+            <a href="{{ url_for('student.update_profile') }}"
+                class="mt-6 inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition">
+                Sửa thông tin
+            </a>
+        </div>
+
+        <!-- Thông tin phòng -->
+        <div>
+            {% if room %}
+            <div class="border rounded-xl bg-gray-50 p-5 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">Phòng ký túc xá</h3>
+                <div class="space-y-2 text-gray-800">
+                    <p><span class="font-semibold text-gray-600">Phòng:</span> {{ room.room_number }}</p>
+                    <p><span class="font-semibold text-gray-600">Dãy:</span> {{ room.block }}</p>
+                    <p><span class="font-semibold text-gray-600">Cơ sở:</span> {{ room.address }}</p>
+                    <p><span class="font-semibold text-gray-600">Giá phòng:</span> {{ "{:,.0f}".format(room.price_room)
+                        }} VNĐ / tháng</p>
+                    <p><span class="font-semibold text-gray-600">Sức chứa:</span> {{ room.capacity }}</p>
+                </div>
+
+                {% if booking and booking.status == "active" %}
+                <form action="{{ url_for('student.return_room', booking_id=booking.id) }}" method="POST"
+                    onsubmit="return confirm('Bạn có chắc chắn muốn trả phòng này không?');" class="mt-5">
+                    <button type="submit"
+                        class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg transition">
+                        Trả phòng
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="border rounded-xl bg-gray-50 p-5 text-gray-500 italic shadow-sm">
+                Bạn hiện chưa được sắp xếp vào phòng nào.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
 {% endblock %}

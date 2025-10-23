@@ -15,6 +15,8 @@ from models.notification import Notification
 from extensions import db
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from sqlalchemy import or_, func
+import unicodedata
 
 admin_bp = Blueprint("admin", __name__, template_folder="../../templates/admin")
 
@@ -32,7 +34,28 @@ def restrict_to_admin():
 @admin_bp.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("admin/admin_dashboard.html", user=current_user)
+    total_students = User.query.filter_by(role="student").count()
+    occupied_rooms = Booking.query.filter_by(status="active").count()
+    unpaid_bills = Payment.query.filter(Payment.status != "success").count()
+    pending_applications = Booking.query.filter_by(status="pending").count()
+    available_rooms = Room.query.filter(Room.available > 0).count()
+    services_open = ServiceRequest.query.filter(
+        ServiceRequest.status.in_(["pending", "in_progress"])
+    ).count()
+    complains_open = Complain.query.filter(Complain.status != "closed").count()
+    announcements_count = Announcement.query.count()
+
+    return render_template(
+        "admin/admin_dashboard.html",
+        total_students=total_students,
+        occupied_rooms=occupied_rooms,
+        unpaid_bills=unpaid_bills,
+        pending_applications=pending_applications,
+        available_rooms=available_rooms,
+        services_open=services_open,
+        complains_open=complains_open,
+        announcements_count=announcements_count,
+    )
 #-------------------------------------------------------
 # Quản lý phòng
 @admin_bp.route("/rooms")
@@ -152,8 +175,8 @@ def kick_student(room_id, booking_id):
 
     # Tạo thông báo cho sinh viên
     notif = Notification(
-        user_id=ApplicationRoom.user_id,
-        message=f"Bạn đã bị kích khỏi phòng."
+        user_id=booking.user_id,
+        message=f"Bạn đã bị kích khỏi phòng {room.room_number}."
     )
     db.session.add(notif)
     db.session.commit()
@@ -226,6 +249,16 @@ def approve_application(app_id):
     application = ApplicationRoom.query.get_or_404(app_id)
     room = Room.query.get(application.room_id)
 
+    # Kiểm tra phòng còn chỗ không
+    if room.available <= 0:
+        flash("Phòng đã hết chỗ, không thể duyệt đơn!", "danger")
+        return redirect(url_for("admin.manage_applications"))
+
+    # Kiểm tra đơn đã được xử lý chưa
+    if application.status != "pending":
+        flash("Đơn này đã được xử lý trước đó.", "info")
+        return redirect(url_for("admin.manage_applications"))
+    
     # Chỉ thay đổi trạng thái đơn, KHÔNG trừ available ở đây
     application.status = "approved_pending_deposit"
 
@@ -250,8 +283,8 @@ def approve_application(app_id):
         block=room.block,
         room_number=room.room_number,
         amount=room.deposit,
-        payment_method="cash", # mặc định
-        status="pending"   # chưa thanh toán
+        payment_method="cash",
+        status="pending"   
     )
 
     db.session.add(payment)
@@ -260,7 +293,7 @@ def approve_application(app_id):
     # Tạo thông báo cho sinh viên
     notif = Notification(
     user_id=application.user_id,
-    message=f"Đơn đăng ký phòng của bạn đã được xử lý."
+    message=f"Đơn đăng ký phòng {room.room_number} của bạn đã được duyệt. Vui lòng thanh toán tiền cọc để hoàn tất."
     )
     db.session.add(notif)
     db.session.commit()
@@ -286,7 +319,6 @@ def reject_application(app_id):
     db.session.commit()
 
     # Tạo thông báo cho sinh viên
-   
     notif = Notification(
     user_id=application.user_id,
     message=f"Đơn đăng ký phòng {application.room.room_number} của bạn đã bị TỪ CHỐI."
@@ -298,32 +330,43 @@ def reject_application(app_id):
     flash("Đơn đã bị từ chối.", "info")
     return redirect(url_for("admin.manage_applications"))
 
-
+#-------------------------------------------------------
 # Quản lý sinh viên
+def normalize_text(s):
+    """Bỏ dấu và chuyển thành lowercase"""
+    if not s:
+        return ""
+    nfkd_form = unicodedata.normalize('NFKD', s)
+    return "".join([c for c in nfkd_form if not unicodedata.combining(c)]).lower()
+
 @admin_bp.route("/students")
 @login_required
 def students():
-    # Lấy tất cả sinh viên
+    keyword = request.args.get("q", "").strip().lower()
+    normalized_keyword = normalize_text(keyword)
+
     students = User.query.filter_by(role="student").all()
-
     data = []
+
     for s in students:
-        # Phòng đang ở (nếu có booking active)
-        booking = Booking.query.filter_by(user_id=s.id, status="active").first()
-        room = Room.query.get(booking.room_id) if booking else None
+        # Ghép các trường để tìm một lần
+        combined = f"{s.student_id} {s.fullname} {s.class_id} {s.citizen_id} {s.phone_number} {s.email or ''}"
+        normalized_text = normalize_text(combined)
 
-        # Hóa đơn
-        payments = Payment.query.filter_by(user_id=s.id).all()
-        unpaid = [p for p in payments if p.status != "success"]
+        if normalized_keyword in normalized_text or not keyword:
+            booking = Booking.query.filter_by(user_id=s.id, status="active").first()
+            room = Room.query.get(booking.room_id) if booking else None
+            payments = Payment.query.filter_by(user_id=s.id).all()
+            unpaid = [p for p in payments if p.status != "success"]
 
-        data.append({
-            "student": s,
-            "room": room,
-            "payments": payments,
-            "unpaid": unpaid
-        })
+            data.append({
+                "student": s,
+                "room": room,
+                "payments": payments,
+                "unpaid": unpaid
+            })
 
-    return render_template("admin/students.html", students=data)
+    return render_template("admin/students.html", students=data, keyword=keyword)
 
 # Chi tiết sinh viên
 @admin_bp.route("/students/<int:student_id>/detail")
@@ -347,13 +390,15 @@ def student_detail_api(student_id):
         ]
     })
 
+#-------------------------------------------------------
+import random
 # Quản lý hóa đơn
 @admin_bp.route("/payments")
 @login_required
 def payments():
     # Lấy toàn bộ hóa đơn, sắp xếp mới nhất trước
     payments = Payment.query.order_by(Payment.created_at.desc()).all()
-    return render_template("admin/payments.html", payments=payments)
+    return render_template("admin/payments.html", payments=payments, now=datetime.utcnow)
 
 @admin_bp.route("/payments/<int:payment_id>/mark_paid", methods=["POST"])
 @login_required
@@ -363,7 +408,72 @@ def mark_payment_paid(payment_id):
     db.session.commit()
     flash("Hóa đơn đã được xác nhận thanh toán!", "success")
     return redirect(url_for("admin.payments"))
+
+# Tự động tạo hóa đơn tiền phòng, điện nước hàng tháng cho tất cả booking active
+@admin_bp.route('/generate_bills', methods=['GET'])
+def generate_bills():
+    today = datetime.today()
+    current_month = today.month
+    current_year = today.year
+
+    bookings = Booking.query.filter_by(status="active").all()  
+    new_bills = 0
     
+    for booking in bookings:
+        user = booking.user
+        room = booking.room
+
+        # Kiểm tra hóa đơn tháng này đã tồn tại chưa
+        existing_bill = Payment.query.filter_by(
+            room_id=room.id,
+            user_id=user.id,
+            month_paid=current_month,
+            year_paid=current_year,
+            service_type="utilities"
+        ).first()
+
+        if existing_bill:
+            continue  # bỏ qua nếu đã có hóa đơn tháng này, hoặc vừa cọc phòng tháng này
+
+        # Tạo số điện nước ngẫu nhiên
+        electricity_usage = random.randint(30, 80)
+        water_usage = random.randint(3, 10)  
+
+        # tính tiền
+        electricity_bill = room.price_electricity * electricity_usage 
+        water_bill = room.price_water * water_usage               
+        total_amount = room.price_room + electricity_bill + water_bill
+
+        # Tạo hóa đơn mới
+        new_payment = Payment(
+            user_id=user.id,
+            room_id=room.id,
+            booking_id=booking.id,
+            fullname=user.fullname,
+            student_id=user.student_id,
+            class_id=user.class_id,
+            citizen_id=user.citizen_id,
+            email=user.email,
+            phone_number=user.phone_number,
+            service_type="utilities",
+            month_paid=current_month,
+            year_paid=current_year,
+            address=f"Ký túc xá {room.block}",
+            block=room.block,
+            room_number=room.room_number,
+            amount=total_amount,
+            payment_method="cash",
+            status="pending"
+        )
+
+        db.session.add(new_payment)
+        new_bills += 1
+
+    db.session.commit()
+    flash(f"Đã tạo {new_bills} hóa đơn mới cho tháng {current_month}/{current_year}", "success")
+    return redirect(url_for('admin.payments'))
+
+#-------------------------------------------------------
 # Quản lý yêu cầu dịch vụ
 @admin_bp.route("/services")
 @login_required
@@ -406,6 +516,14 @@ def update_service_status(req_id, status):
         )
         db.session.add(payment)
     db.session.commit()
+
+    notif = Notification(
+        user_id=req.user.id,
+        message=f"Yêu cầu dịch vụ '{req.service_type}' của bạn đã được cập nhật thành '{status}'."
+    )
+    db.session.add(notif)
+    db.session.commit()
+
     flash("Cập nhật trạng thái thành công!", "success")
     return redirect(url_for("admin.manage_services"))
 
@@ -442,12 +560,21 @@ def set_service_price(req_id):
 
         db.session.commit()
         flash("Đã cập nhật giá và tạo hóa đơn!", "success")
+
+        notif = Notification(
+            user_id=req.user.id,
+            message=f"Dịch vụ '{req.service_type}' của bạn đã được báo giá {price:,}đ. Vui lòng kiểm tra chi tiết."
+        )
+        db.session.add(notif)
+        db.session.commit()
+
     except Exception:
         db.session.rollback()
         flash("Có lỗi khi cập nhật giá!", "danger")
 
     return redirect(url_for("admin.manage_services"))
 
+#-------------------------------------------------------
 # Quản lý complain
 @admin_bp.route("/complains")
 @login_required
@@ -470,10 +597,18 @@ def reply_complain(complain_id):
     complain.status = "answered"
     db.session.commit()
 
+    notif = Notification(
+        user_id=complain.user_id,
+        message=f"Yêu cầu khiếu nại của bạn đã được đóng. Cảm ơn bạn đã phản hồi!"
+    )
+    db.session.add(notif)
+    db.session.commit()
+
+
     flash("Đã phản hồi khiếu nại!", "success")
     return redirect(url_for("admin.manage_complains"))
 
-#  Đóng complain (nếu cần)
+#  Đóng complain
 @admin_bp.route("/complains/<int:complain_id>/close", methods=["POST"])
 @login_required
 def close_complain(complain_id):
@@ -484,6 +619,7 @@ def close_complain(complain_id):
     flash("Đã đóng khiếu nại!", "success")
     return redirect(url_for("admin.manage_complains"))
 
+#-------------------------------------------------------
 #Announcement
 @admin_bp.route("/announcements")
 def manage_announcements():

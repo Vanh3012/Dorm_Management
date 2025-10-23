@@ -6,7 +6,7 @@
     <table class="w-full border rounded overflow-hidden">
         <thead class="bg-gray-100 text-sm uppercase">
             <tr>
-                <th class="p-3 border">ID</th>
+                <th class="p-3 border">STT</th>
                 <th class="p-3 border">Sinh viên</th>
                 <th class="p-3 border">Tiêu đề</th>
                 <th class="p-3 border">Nội dung</th>
@@ -18,7 +18,7 @@
         <tbody class="text-sm text-center">
             {% for c in complains %}
             <tr class="border-t hover:bg-gray-50">
-                <td class="p-3">{{ c.id }}</td>
+                <td class="p-3">{{ loop.index }}</td>
                 <td class="p-3">{{ c.user.fullname }}</td>
                 <td class="p-3 font-semibold">{{ c.title }}</td>
                 <td class="p-3 text-left">{{ c.content }}</td>

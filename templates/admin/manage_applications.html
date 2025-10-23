@@ -7,7 +7,7 @@
         <table class="w-full text-sm border-collapse">
             <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
                 <tr>
-                    <th class="px-4 py-3">ID</th>
+                    <th class="px-4 py-3">STT</th>
                     <th class="px-4 py-3">Họ tên</th>
                     <th class="px-4 py-3">MSSV</th>
                     <th class="px-4 py-3">Phòng</th>
@@ -18,7 +18,7 @@
             <tbody>
                 {% for app in applications %}
                 <tr class="border-b hover:bg-gray-50 text-center">
-                    <td class="px-4 py-2">{{ app.id }}</td>
+                    <td class="px-4 py-2">{{ loop.index }}</td>
                     <td class="px-4 py-2 font-medium">{{ app.fullname }}</td>
                     <td class="px-4 py-2">{{ app.student_id }}</td>
                     <td class="px-4 py-2">
@@ -43,7 +43,7 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-2">
-                        <button onclick="viewDetail({{ app.id }})"
+                        <button onclick="viewDetail('{{ app.id }}')"
                             class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs">
                             Xem chi tiết
                         </button>

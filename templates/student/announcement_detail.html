@@ -1,27 +1,40 @@
 {% extends "student/student_base.html" %}
 {% block content %}
-<div class="bg-white shadow rounded p-20">
+
+<section class="max-w-4xl mx-auto mt-10 mb-20 bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
     <!-- Header -->
-    <div class="flex items-center gap-3 mb-4">
-        <img src="{{ url_for('static', filename='img/admin_avatar.jpg') }}" class="w-12 h-12 rounded-full border"
-            alt="Admin avatar">
+    <div class="flex items-center gap-3 px-6 pt-6 pb-3 border-b">
+        <img src="{{ url_for('static', filename='img/admin_avatar.jpg') }}"
+            class="w-10 h-10 rounded-full border border-gray-300 object-cover" alt="Admin avatar">
         <div>
-            <p class="font-semibold">{{ ann.admin.fullname if ann.admin else "Admin" }}</p>
-            <p class="text-gray-500 text-sm">{{ ann.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+            <p class="font-semibold text-gray-800">{{ ann.admin.fullname if ann.admin else "Admin" }}</p>
+            <p class="text-gray-500 text-xs">{{ ann.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
         </div>
     </div>
 
     <!-- Nội dung -->
-    <h2 class="text-2xl font-bold mb-3">{{ ann.title }}</h2>
-    <div class="prose max-w-none whitespace-pre-line">{{ ann.content | safe }}</div>
+    <div class="px-6 py-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-4">{{ ann.title }}</h1>
 
-    <!-- Ảnh đính kèm -->
-    {% if ann.image_url %}
-    <img src="{{ url_for('static', filename=ann.image_url) }}"
-        class="my-4 rounded-lg max-h-[500px] w-full object-cover shadow">
-    {% endif %}
-</div>
+        <div class="text-gray-800 leading-relaxed whitespace-pre-line mb-6">
+            {{ ann.content | safe }}
+        </div>
 
-<a href="{{ url_for('student.announcements') }}" class="inline-block mt-6 text-blue-600 hover:underline">← Quay lại danh
-    sách</a>
+        {% if ann.image_url %}
+        <div class="bg-gray-50 border rounded-lg overflow-hidden flex justify-center items-center max-h-[450px]">
+            <img src="{{ url_for('static', filename=ann.image_url) }}" alt="Announcement image"
+                class="max-h-[450px] w-auto object-contain">
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-4 bg-gray-50 border-t text-right">
+        <a href="{{ url_for('student.announcements') }}"
+            class="text-blue-600 hover:text-blue-800 text-sm font-medium transition">
+            ← Quay lại danh sách
+        </a>
+    </div>
+</section>
+
 {% endblock %}

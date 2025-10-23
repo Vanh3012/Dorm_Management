@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 from extensions import db
 from models.user import User
@@ -58,23 +58,52 @@ def update_profile():
 @student_bp.route("/dorm_register", methods=["GET", "POST"])
 @login_required
 def dorm_register():
-    # Bộ lọc (cơ sở, block, số phòng)
     address = request.args.get("address")
     block = request.args.get("block")
     room_number = request.args.get("room_number")
+    min_price = request.args.get("min_price", type=float)
+    max_price = request.args.get("max_price", type=float)
+    available_only = request.args.get("available")  # "yes" or None
+    sort_price = request.args.get("sort_price")  # "asc" / "desc"
 
     query = Room.query
 
+    # --- Lọc cơ bản ---
     if address:
         query = query.filter_by(address=address)
     if block:
         query = query.filter_by(block=block)
     if room_number:
-        query = query.filter_by(room_number=room_number)
+        query = query.filter(Room.room_number.like(f"%{room_number}%"))
+
+    # --- Lọc nâng cao ---
+    if min_price:
+        query = query.filter(Room.price_room >= min_price)
+    if max_price:
+        query = query.filter(Room.price_room <= max_price)
+
+    if available_only == "yes":
+        query = query.filter(Room.available > 0)
+
+    # --- Sắp xếp ---
+    if sort_price == "asc":
+        query = query.order_by(Room.price_room.asc())
+    elif sort_price == "desc":
+        query = query.order_by(Room.price_room.desc())
 
     rooms = query.all()
 
-    return render_template("student/dorm_register.html", rooms=rooms)
+    return render_template(
+        "student/dorm_register.html",
+        rooms=rooms,
+        address=address,
+        block=block,
+        room_number=room_number,
+        min_price=min_price,
+        max_price=max_price,
+        available_only=available_only,
+        sort_price=sort_price
+    )
 
 # Trang chi tiết phòng
 @student_bp.route("/room/<int:room_id>", methods=["GET","POST"])
@@ -186,7 +215,7 @@ def return_room(booking_id):
 @student_bp.route("/payments")
 @login_required
 def payments():
-    service_type = request.args.get("type", "all")  # ?type=deposit / room / utilities / service
+    service_type = request.args.get("type", "all")  
 
     query = Payment.query.filter_by(user_id=current_user.id)
 
@@ -206,7 +235,7 @@ def payments():
 def pay(payment_id):
     payment = Payment.query.get_or_404(payment_id)
 
-    # check quyền: sinh viên chỉ được trả tiền của chính mình
+    # check quyền sinh viên chỉ được trả tiền của chính mình
     if payment.user_id != current_user.id:
         flash("Bạn không thể thanh toán hóa đơn này!", "danger")
         return redirect(url_for("student.payments"))
@@ -215,7 +244,7 @@ def pay(payment_id):
         flash("Hóa đơn này đã được thanh toán trước đó.", "info")
         return redirect(url_for("student.payments"))
 
-    # Giả lập: thanh toán thành công
+    # Giả lập thanh toán thành công
     payment.status = "success"
 
     # Nếu là tiền cọc thì tạo booking và trừ số chỗ phòng
@@ -256,7 +285,7 @@ def services():
         booking = Booking.query.filter_by(user_id=current_user.id, status="active").first()
         room_id = booking.room_id if booking else None
 
-        # Nếu là dịch vụ thu gom rác thì gán giá luôn
+        # Nếu là dịch vụ thu gom rác thì gán giá luôn, còn bảo trì sửa chữa thì admin nhập giá
         price = TRASH_PRICE if service_type == "trash" else 0
 
         req = ServiceRequest(
@@ -343,14 +372,6 @@ def notifications():
     )
     return render_template("student/notifications.html", notifs=notifs)
     
-# Notification context processor
-@student_bp.app_context_processor
-def inject_notifications():
-    if current_user.is_authenticated and current_user.role == "student":
-        notifs = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).all()
-        unread_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
-        return dict(notifs=notifs, unread_count=unread_count)
-    return {}
 
 @student_bp.route("/notifications/mark_all_read", methods=["POST"])
 @login_required

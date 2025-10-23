@@ -30,7 +30,7 @@ class User(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
-    # Quan hệ với các bảng khác (chỉ cần tên class, không cần import Application/Booking/Payment ở đây)
+    # Quan hệ với các bảng khác
     applications = db.relationship("ApplicationRoom", back_populates="user", lazy=True)
     bookings = db.relationship("Booking", back_populates="user", lazy=True)
     payments = db.relationship("Payment", back_populates="user", lazy=True)

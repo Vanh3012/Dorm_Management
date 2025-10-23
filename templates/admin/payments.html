@@ -8,7 +8,7 @@
         <table class="w-full text-sm text-left border-collapse">
             <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
                 <tr>
-                    <th class="px-4 py-3">ID</th>
+                    <th class="px-4 py-3">STT</th>
                     <th class="px-4 py-3">Sinh viên</th>
                     <th class="px-4 py-3">Phòng</th>
                     <th class="px-4 py-3">Loại</th>
@@ -22,7 +22,7 @@
             <tbody>
                 {% for p in payments %}
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="px-4 py-2">{{ p.id }}</td>
+                    <td class="px-4 py-2">{{ loop.index }}</td>
                     <td class="px-4 py-2">
                         {{ p.fullname }} <br>
                         <span class="text-xs text-gray-500">{{ p.student_id }} - {{ p.class_id }}</span>
@@ -40,6 +40,10 @@
                             Điện nước
                         {% elif p.service_type == "laundry" %}
                             Giặt ủi
+                        {% elif p.service_type == "trash" %}
+                            Dọn rác
+                        {% elif p.service_type == "maintenance" %}
+                            Bảo trì, sửa chữa
                         {% else %}
                         {{ p.service_type }}
                         {% endif %}
@@ -70,6 +74,12 @@
             </tbody>
         </table>
     </div>
+    <a href="{{ url_for('admin.generate_bills') }}"
+        class="fixed bottom-6 right-8 bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-3 rounded-lg shadow-lg transition-all duration-200">
+        Tạo hóa đơn tháng {{ now().month }}/{{ now().year }}
+    </a>
+
+
 </div>
 
 {% endblock %}

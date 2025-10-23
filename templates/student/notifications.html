@@ -1,15 +1,35 @@
-{% extends "student/student_base.html" %}
+{% extends "student_base.html" %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-6">🔔 Tất cả thông báo</h2>
+<div class="min-h-screen bg-gray-100 py-10">
+    <div class="max-w-3xl mx-auto bg-white shadow-lg rounded-2xl p-8">
+        <h2 class="text-3xl font-bold text-red-600 mb-6 text-center">
+            🔔 Tất cả thông báo
+        </h2>
 
-<div class="space-y-3">
-    {% for n in notifs %}
-    <div class="bg-white shadow rounded-lg p-4 {% if not n.is_read %} border-l-4 border-blue-500 {% endif %}">
-        <p class="text-gray-800">{{ n.message }}</p>
-        <p class="text-gray-500 text-xs mt-1">{{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+        {% if notifs %}
+        <div class="divide-y divide-gray-200">
+            {% for n in notifs %}
+            <div class="py-4 px-3 flex items-start hover:bg-gray-50 transition relative">
+                <!-- Chấm đỏ nếu chưa đọc -->
+                {% if not n.is_read %}
+                <span class="w-2 h-2 bg-red-500 rounded-full absolute left-0 top-1/2 -translate-y-1/2 ml-2"></span>
+                {% endif %}
+
+                <!-- Nội dung -->
+                <div class="ml-5">
+                    <p class="{% if not n.is_read %}font-semibold text-gray-900{% else %}text-gray-700{% endif %}">
+                        {{ n.message }}
+                    </p>
+                    <p class="text-sm text-gray-500 mt-1">
+                        {{ n.created_at.strftime('%d/%m/%Y %H:%M') }}
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 italic text-center py-10">Hiện bạn chưa có thông báo nào.</p>
+        {% endif %}
     </div>
-    {% else %}
-    <p class="italic text-gray-500">Bạn chưa có thông báo nào.</p>
-    {% endfor %}
 </div>
 {% endblock %}

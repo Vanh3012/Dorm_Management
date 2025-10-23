@@ -1,8 +1,8 @@
 from flask import Flask, render_template
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from dotenv import load_dotenv
 import os
-from extensions import db, mail
+from extensions import db
 from flask_migrate import Migrate
 from datetime import datetime
 
@@ -39,28 +39,29 @@ app.config["UPLOAD_FOLDER_ANNOUNCEMENTS"] = UPLOAD_FOLDER_ANNOUNCEMENTS
 app.config["ALLOWED_EXTENSIONS"] = {"png", "jfif", "jpg", "jpeg", "gif"}
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5MB/file
 
+
 # Cấu hình Flask-Mail
-app.config.update(
-    MAIL_SERVER="smtp.gmail.com",
-    MAIL_PORT=587,
-    MAIL_USE_TLS=True,
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),          # ví dụ: yourname@gmail.com
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),          # App password 16 ký tự
-    MAIL_DEFAULT_SENDER=os.getenv("MAIL_DEFAULT_SENDER", os.getenv("MAIL_USERNAME")),
-)
+#app.config.update(
+#    MAIL_SERVER="smtp.gmail.com",
+#    MAIL_PORT=587,
+#    MAIL_USE_TLS=True,
+#    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),          # ví dụ: yourname@gmail.com
+#    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),          # App password 16 ký tự
+#    MAIL_DEFAULT_SENDER=os.getenv("MAIL_DEFAULT_SENDER", os.getenv("MAIL_USERNAME")),
+#)
+
 
 
 # Khởi tạo db, migrate, mail
 db.init_app(app)
 migrate = Migrate(app, db)
-mail.init_app(app)
 
 # Login Manager
 login_manager = LoginManager(app)
 login_manager.login_view = "auth.login"
 
 # Import models sau khi db đã init
-from models import User, Room, ApplicationRoom, Booking, Payment, ServiceRequest
+from models import User, Room, ApplicationRoom, Booking, Payment, Notification, ServiceRequest
 
 
 # Import blueprints
@@ -80,6 +81,14 @@ def load_user(user_id):
 @app.route("/")
 def home():
     return render_template("home.html", year=datetime.now().year)
+
+@app.context_processor
+def inject_notifications():
+    if current_user.is_authenticated and current_user.role == "student":
+        notifs = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).all()
+        unread_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+        return dict(notifs=notifs, unread_count=unread_count)
+    return {}
 
 if __name__ == "__main__":
     app.run(debug=True)

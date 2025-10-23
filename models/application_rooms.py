@@ -10,16 +10,14 @@ class ApplicationRoom(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False)
 
-    # Thông tin cơ bản (giữ từ bảng Application cũ)
+    # Thông tin cơ bản
     fullname = db.Column(db.String(100), nullable=False)
     student_id = db.Column(db.String(20), nullable=False)
     class_id = db.Column(db.String(20), nullable=False)
     citizen_id = db.Column(db.String(20), nullable=False)
     email = db.Column(db.String(100), nullable=False)
     phone_number = db.Column(db.String(15), nullable=False)
-
-    # Bổ sung chi tiết
-    address = db.Column(db.String(255), nullable=False)          # Địa chỉ thường trú
+    address = db.Column(db.String(255), nullable=False)      
 
     relative1_name  = db.Column(db.String(100))
     relative1_phone = db.Column(db.String(15))
@@ -33,13 +31,12 @@ class ApplicationRoom(db.Model):
     policy_type   = db.Column(db.String(255))      # VD: Con liệt sĩ, dân tộc thiểu số...
     policy_proof  = db.Column(db.String(255))      # File minh chứng
 
-    # Hoàn cảnh gia đình khó khăn
+    # Hoàn cảnh khó khăn
     hardship_detail = db.Column(db.Text)           # kê khai cụ thể: thu nhập, đất đai, tư liệu sản xuất
-    hardship_proof  = db.Column(db.String(255))    # File xác nhận của địa phương
+    hardship_proof  = db.Column(db.String(255))    # File xác nhận
 
-    # Minh chứng khác
     citizen_proof = db.Column(db.String(255))      # Ảnh CCCD
-    student_photo = db.Column(db.String(255))      # Ảnh chân dung 3x4
+    student_photo = db.Column(db.String(255))      # Ảnh chân dung
 
     # Trạng thái
     status = db.Column(

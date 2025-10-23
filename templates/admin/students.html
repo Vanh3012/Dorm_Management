@@ -3,10 +3,25 @@
 <div class="p-6">
     <h1 class="text-2xl font-bold mb-6">Quản lý sinh viên</h1>
 
+    <div class="flex justify-between items-center mb-4">
+        <form method="get" action="{{ url_for('admin.students') }}" class="flex gap-2">
+            <input type="text" name="q" placeholder="Tìm kiếm sinh viên..." value="{{ keyword or '' }}"
+                class="border rounded-lg px-3 py-2 w-72 focus:outline-none focus:ring focus:border-blue-300">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                Tìm kiếm
+            </button>
+        </form>
+    
+        {% if keyword %}
+        <a href="{{ url_for('admin.students') }}" class="text-gray-500 hover:text-black text-sm">Xóa lọc</a>
+        {% endif %}
+    </div>
+
     <div class="overflow-x-auto bg-white shadow-md rounded-lg">
         <table class="w-full text-sm text-left border-collapse">
             <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
                 <tr>
+                    <th class="px-4 py-3">STT</th>
                     <th class="px-4 py-3">MSSV</th>
                     <th class="px-4 py-3">Họ tên</th>
                     <th class="px-4 py-3">Lớp</th>
@@ -18,6 +33,7 @@
             <tbody>
                 {% for item in students %}
                 <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ loop.index }}</td>
                     <td class="px-4 py-2">{{ item.student.student_id }}</td>
                     <td class="px-4 py-2">{{ item.student.fullname }}</td>
                     <td class="px-4 py-2">{{ item.student.class_id }}</td>
@@ -36,7 +52,7 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-2">
-                        <button onclick="openDetail({{ item.student.id }})"
+                        <button onclick="openDetail('{{ item.student.id }}')"
                             class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs">
                             Xem chi tiết
                         </button>
@@ -65,7 +81,9 @@
         const map = {
             deposit: "Tiền cọc",
             room: "Phòng",
+            maintenance: "Bảo trì, sửa chữa",
             utilities: "Điện nước",
+            trash: "Dọn rác",
             laundry: "Giặt ủi"
         };
         return map[type] || type;
@@ -110,6 +128,7 @@
     function closeModal() {
         document.getElementById("studentModal").classList.add("hidden");
     }
+
 </script>
 
 {% endblock %}

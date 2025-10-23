@@ -1,44 +1,59 @@
 {% extends "student/student_base.html" %}
 {% block content %}
-<div class="text-center mt-6 mb-8">
-    <h1 class="text-3xl font-bold inline-block relative">
-        Thông tin
-        <span class="block w-20 h-1 bg-red-500 mx-auto mt-2 rounded"></span>
-    </h1>
+
+<!-- Tiêu đề -->
+<div class="text-center mt-8 mb-10">
+    <h1 class="text-3xl font-bold text-gray-800">Thông báo ký túc xá</h1>
+    <p class="text-gray-500 mt-1 text-sm">Các tin mới nhất từ ban quản lý ký túc xá PTIT</p>
 </div>
 
-<!-- Danh sách thông báo dạng feed -->
-<div class="space-y-6  p-20 ">
+<!-- Danh sách thông báo -->
+<div class="max-w-5xl mx-auto px-4 space-y-6">
     {% for ann in announcements %}
-    <div class="bg-white shadow rounded-lg p-4">
+    <div
+        class="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden hover:shadow-md transition-all duration-200">
+
         <!-- Header -->
-        <div class="flex items-center gap-3 mb-3">
-            <img src="{{ url_for('static', filename='img/admin_avatar.jpg') }}" class="w-10 h-10 rounded-full border"
-                alt="Admin avatar">
+        <div class="flex items-center gap-3 px-5 pt-5">
+            <img src="{{ url_for('static', filename='img/admin_avatar.jpg') }}"
+                class="w-9 h-9 rounded-full border border-gray-300 object-cover" alt="Admin avatar">
             <div>
-                <p class="font-semibold">{{ ann.admin.fullname if ann.admin else "Admin" }}</p>
-                <p class="text-gray-500 text-xs">{{ ann.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                <p class="font-semibold text-gray-800 leading-tight">
+                    {{ ann.admin.fullname if ann.admin else "Admin" }}
+                </p>
+                <p class="text-xs text-gray-500">
+                    {{ ann.created_at.strftime('%d/%m/%Y %H:%M') }}
+                </p>
             </div>
         </div>
 
         <!-- Nội dung -->
-        <h3 class="text-lg font-bold mb-2">{{ ann.title }}</h3>
-        <p class="text-gray-800 whitespace-pre-line">
-            {{ ann.content[:300] }}{% if ann.content|length > 300 %}...{% endif %}
-        </p>
+        <div class="px-5 py-4">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">{{ ann.title }}</h3>
+            <p class="text-gray-700 text-sm leading-relaxed">
+                {{ ann.content[:250] }}{% if ann.content|length > 250 %}...{% endif %}
+            </p>
+        </div>
 
-        <!-- Ảnh đính kèm -->
+        <!-- Ảnh -->
         {% if ann.image_url %}
-        <img src="{{ url_for('static', filename=ann.image_url) }}"
-            class="mt-3 rounded-lg max-h-[400px] w-full object-cover shadow">
+        <div class="w-full h-64 overflow-hidden bg-gray-50">
+            <img src="{{ url_for('static', filename=ann.image_url) }}"
+                class="w-full h-full object-contain rounded-t-none" alt="Announcement image">
+        </div>
         {% endif %}
 
-        <!-- Link chi tiết -->
-        <a href="{{ url_for('student.announcement_detail', ann_id=ann.id) }}"
-            class="text-blue-600 hover:underline text-sm mt-2 inline-block">Xem chi tiết</a>
+        <!-- Footer -->
+        <div class="px-5 py-3 bg-gray-50 border-t text-right">
+            <a href="{{ url_for('student.announcement_detail', ann_id=ann.id) }}"
+                class="text-blue-600 hover:text-blue-800 font-medium text-sm transition">
+                Xem chi tiết →
+            </a>
+        </div>
     </div>
     {% else %}
-    <p class="italic text-gray-500">Chưa có thông báo nào.</p>
+    <p class="text-center italic text-gray-500 mt-10">Chưa có thông báo nào.</p>
     {% endfor %}
 </div>
+
 {% endblock %}

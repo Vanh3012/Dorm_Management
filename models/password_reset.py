@@ -1,5 +1,6 @@
 from extensions import db
 from datetime import datetime, timedelta
+import hashlib
 
 class PasswordReset(db.Model):
     __tablename__ = "password_resets"
@@ -25,3 +26,16 @@ class PasswordReset(db.Model):
             otp_hash=otp_hash,
             expires_at=datetime.utcnow() + timedelta(minutes=cls.ttl_minutes()),
         )
+    
+    def is_valid(self, otp):
+        """Kiểm tra mã OTP hợp lệ, chưa dùng, chưa hết hạn"""
+        hashed = hashlib.sha256(otp.encode()).hexdigest()
+        return (
+            not self.used
+            and datetime.utcnow() < self.expires_at
+            and hashed == self.otp_hash
+        )
+
+    def mark_used(self):
+        self.used = True
+        db.session.commit()

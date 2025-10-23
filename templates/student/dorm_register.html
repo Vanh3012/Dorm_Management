@@ -1,40 +1,114 @@
 {% extends "student/student_base.html" %}
 {% block content %}
-<h2 class="text-xl text-center font-bold mb-4">Đăng ký phòng ký túc xá</h2>
 
-<form method="get" class="mb-6 flex gap-4">
-    <select name="address" class="border px-2 py-1 rounded">
-        <option value="">-- Cơ sở --</option>
-        <option value="Hà Đông">Hà Đông</option>
-        <option value="Hoàng Quốc Việt">Hoàng Quốc Việt</option>
-        <option value="Ngọc Trục">Ngọc Trục</option>
-    </select>
+<h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Đăng ký phòng ký túc xá</h2>
 
-    <select name="block" class="border px-2 py-1 rounded">
-        <option value="">-- Dãy --</option>
-        <option value="A">A</option>
-        <option value="B">B</option>
-        <option value="C">C</option>
-    </select>
+<!-- Bộ lọc -->
+<form method="get"
+    class="mb-8 bg-white p-4 rounded-xl shadow-md grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+    <div>
+        <label class="text-sm font-semibold text-gray-600">Cơ sở</label>
+        <select name="address"
+            class="border border-gray-300 px-3 py-2 rounded-lg w-full focus:ring focus:ring-blue-200">
+            <option value="">-- Tất cả --</option>
+            <option value="Hà Đông" {% if address=='Hà Đông' %}selected{% endif %}>Hà Đông</option>
+            <option value="Hoàng Quốc Việt" {% if address=='Hoàng Quốc Việt' %}selected{% endif %}>Hoàng Quốc Việt
+            </option>
+            <option value="Ngọc Trục" {% if address=='Ngọc Trục' %}selected{% endif %}>Ngọc Trục</option>
+        </select>
+    </div>
 
-    <input type="text" name="room_number" placeholder="Số phòng" class="border px-2 py-1 rounded" />
+    <div>
+        <label class="text-sm font-semibold text-gray-600">Dãy</label>
+        <select name="block" class="border border-gray-300 px-3 py-2 rounded-lg w-full focus:ring focus:ring-blue-200">
+            <option value="">-- Tất cả --</option>
+            <option value="A" {% if block=='A' %}selected{% endif %}>A</option>
+            <option value="B" {% if block=='B' %}selected{% endif %}>B</option>
+            <option value="C" {% if block=='C' %}selected{% endif %}>C</option>
+        </select>
+    </div>
 
-    <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">
-        Lọc
-    </button>
+    <div>
+        <label class="text-sm font-semibold text-gray-600">Khoảng giá (VNĐ)</label>
+        <div class="flex gap-2">
+            <input type="number" name="min_price" placeholder="Từ" value="{{ min_price or '' }}"
+                class="w-1/2 border border-gray-300 px-2 py-2 rounded-lg focus:ring focus:ring-blue-200">
+            <input type="number" name="max_price" placeholder="Đến" value="{{ max_price or '' }}"
+                class="w-1/2 border border-gray-300 px-2 py-2 rounded-lg focus:ring focus:ring-blue-200">
+        </div>
+    </div>
+
+    <div>
+        <label class="text-sm font-semibold text-gray-600">Sắp xếp theo giá</label>
+        <select name="sort_price"
+            class="border border-gray-300 px-3 py-2 rounded-lg w-full focus:ring focus:ring-blue-200">
+            <option value="">-- Không sắp xếp --</option>
+            <option value="asc" {% if sort_price=='asc' %}selected{% endif %}>Tăng dần</option>
+            <option value="desc" {% if sort_price=='desc' %}selected{% endif %}>Giảm dần</option>
+        </select>
+    </div>
+
+    <div class="flex flex-col justify-end">
+        <label class="flex items-center gap-2 text-sm font-semibold text-gray-600 mb-2">
+            <input type="checkbox" id="available" name="available" value="yes" {% if available_only=='yes' %}checked{%
+                endif %}>
+            Chỉ hiện phòng trống
+        </label>
+        <div>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold">
+                Lọc
+            </button>
+            <a href="{{ url_for('student.dorm_register') }}" class="ml-2 text-gray-600 hover:text-black text-sm">Xóa
+                lọc</a>
+        </div>
+    </div>
 </form>
 
-<div class="grid grid-cols-3 gap-4">
+<!-- Danh sách phòng -->
+{% if rooms %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for room in rooms %}
-    <div class="border p-4 rounded shadow bg-white">
-        <h3 class="font-bold">{{ room.room_number }} ({{ room.address }} - {{ room.block }})</h3>
-        <p>Giá phòng: {{ room.price_room }} VNĐ</p>
-        <p>Số chỗ: {{ room.capacity - room.available }}/{{ room.capacity }}</p>
-        <a href="{{ url_for('student.room_detail', room_id=room.id) }}"
-            class="mt-2 inline-block bg-green-600 text-white px-3 py-1 rounded">Chi tiết</a>
+    <div class="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 group">
+        <!-- Ảnh phòng -->
+        {% if room.images and room.images|length > 0 %}
+        <img src="{{ room.images[0].image_url }}" alt="Room Image"
+            class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+        {% else %}
+        <img src="{{ url_for('static', filename='img/default_room.jpg') }}" alt="Default Room"
+            class="w-full h-48 object-cover opacity-90">
+        {% endif %}
+
+        <!-- Nội dung -->
+        <div class="p-5">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-lg font-bold text-gray-800">Phòng {{ room.room_number }}</h3>
+                <span class="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-1 rounded">
+                    {{ room.block }} - {{ room.address }}
+                </span>
+            </div>
+
+            <p class="text-sm text-gray-600 mb-1">💰
+                <span class="font-semibold text-blue-700">{{ "{:,.0f}".format(room.price_room) }} VNĐ/tháng</span>
+            </p>
+            <p class="text-sm text-gray-600 mb-1">👥 Sức chứa: {{ room.capacity }}</p>
+            <p class="text-sm mb-2">
+                {% if room.available > 0 %}
+                <span class="text-green-600 font-semibold">Còn {{ room.available }} chỗ trống</span>
+                {% else %}
+                <span class="text-red-500 font-semibold">Hết chỗ</span>
+                {% endif %}
+            </p>
+
+            <a href="{{ url_for('student.room_detail', room_id=room.id) }}"
+                class="inline-block w-full mt-2 text-center bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-semibold transition">
+                Xem chi tiết
+            </a>
+        </div>
     </div>
-    {% else %}
-    <p>Không có phòng nào phù hợp</p>
     {% endfor %}
 </div>
+{% else %}
+<p class="text-center text-gray-500 italic mt-10">Không tìm thấy phòng phù hợp.</p>
+{% endif %}
+
 {% endblock %}

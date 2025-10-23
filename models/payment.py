@@ -21,8 +21,8 @@ class Payment(db.Model):
         nullable=False
     )
 
-    month_paid = db.Column(db.Integer, nullable=False)  # tháng
-    year_paid = db.Column(db.Integer, nullable=False)   # năm
+    month_paid = db.Column(db.Integer, nullable=False)  
+    year_paid = db.Column(db.Integer, nullable=False)   
 
     address = db.Column(db.String(150), nullable=False)
     block = db.Column(db.String(10), nullable=False)

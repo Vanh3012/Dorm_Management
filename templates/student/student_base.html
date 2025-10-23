@@ -51,19 +51,47 @@
                     {% endif %}
                 </button>
                 <!-- Dropdown -->
-                <div id="notifMenu" class="hidden absolute right-0 mt-3 w-80 bg-white shadow-lg rounded-lg z-50">
-                    <div class="p-4 border-b font-bold">Thông báo</div>
-                    <ul class="max-h-80 overflow-y-auto">
-                        {% for notif in notifications %}
-                        <li class="px-4 py-2 hover:bg-gray-50 border-b">
-                            {{ notif.message }}
-                            <span class="block text-xs text-gray-400">{{ notif.created_at.strftime('%d/%m/%Y %H:%M')
-                                }}</span>
+                <div id="notifMenu"
+                    class="hidden absolute right-0 mt-3 w-96 bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden z-50">
+                
+                    <!-- Header -->
+                    <div
+                        class="p-4 bg-gradient-to-r from-red-600 to-red-500 text-white font-semibold text-lg rounded-t-2xl flex justify-between items-center">
+                        <span>Thông báo</span>
+                        {% if unread_count and unread_count > 0 %}
+                        <span class="bg-white text-red-600 text-xs font-bold rounded-full px-2 py-0.5">
+                            {{ unread_count }} mới
+                        </span>
+                        {% endif %}
+                    </div>
+                
+                    <!-- Danh sách thông báo -->
+                    <ul class="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                        {% for notif in notifs[:5] %}
+                        <li class="px-5 py-3 hover:bg-gray-50 transition-colors duration-200">
+                            <p class="text-gray-800 font-medium leading-snug">
+                                {{ notif.message }}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                {{ notif.created_at.strftime('%d/%m/%Y %H:%M') }}
+                            </p>
                         </li>
                         {% else %}
-                        <li class="px-4 py-4 italic text-gray-500 text-center">Không có thông báo</li>
+                        <li class="px-5 py-6 text-center italic text-gray-500">
+                            Hiện bạn chưa có thông báo nào.
+                        </li>
                         {% endfor %}
                     </ul>
+                
+                    <!-- Footer -->
+                    {% if notifs|length > 5 %}
+                    <div class="text-center bg-gray-50 py-3 border-t">
+                        <a href="{{ url_for('student.notifications') }}"
+                            class="text-blue-600 hover:text-blue-800 font-medium text-sm transition">
+                             Xem tất cả thông báo
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -90,7 +118,6 @@
             <li><a href="{{ url_for('student.payments') }}" class="block hover:text-red-600">Thanh toán</a></li>
             <li><a href="{{ url_for('student.complains') }}" class="block hover:text-red-600">Khiếu nại & Góp ý</a></li>
             <li><a href="#footer" class="block hover:text-red-600">Liên hệ</a></li>
-            <li><a href="#" class="block hover:text-red-600">Hướng dẫn</a></li>
         </ul>
     </aside>
 
@@ -104,8 +131,8 @@
         <div class="container mx-auto px-6 py-6 grid md:grid-cols-2 gap-4 text-sm">
             <div>
                 <p><b>Liên hệ:</b> 0123 456 789</p>
-                <p><b>Email:</b> ktx@ptit.edu.vn</p>
-                <p><b>Địa chỉ:</b> Hà Đông - Hoàng Quốc Việt - Ngọc Trục</p>
+                <p><b>Email:</b> quanlyktx@ptit.edu.vn</p>
+                <p><b>Địa chỉ:</b> Km10 - Nguyễn Trãi, Hà Đông, Hà Nội</p>
             </div>
             <div class="flex items-center md:justify-end">
                 <p>&copy; {{ year }} Ký túc xá - PTIT. All rights reserved.</p>
@@ -147,13 +174,32 @@
         // Notifications toggle
         const notifButton = document.getElementById("notifButton");
         const notifMenu = document.getElementById("notifMenu");
-        notifButton.addEventListener("click", (e) => {
+        const notifCount = document.getElementById("notifCount"); // số trên chuông
+
+        notifButton.addEventListener("click", async (e) => {
             e.stopPropagation();
             notifMenu.classList.toggle("hidden");
+
+        //Khi mở menu (hiển thị thông báo)
+        if (!notifMenu.classList.contains("hidden")) {
+            try {
+                const res = await fetch("/student/notifications/mark_all_read", { method: "POST" });
+                if (res.status === 204 && notifCount) {
+                    notifCount.classList.add("hidden"); // ẩn số trên chuông
+                }
+            } catch (err) {
+                console.error("Lỗi khi đánh dấu thông báo đã đọc:", err);
+            }
+        }
         });
-        document.addEventListener("click", () => {
-            notifMenu.classList.add("hidden");
+
+        //Ẩn dropdown khi click ra ngoài
+        document.addEventListener("click", (e) => {
+            if (!notifButton.contains(e.target) && !notifMenu.contains(e.target)) {
+                notifMenu.classList.add("hidden");
+            }
         });
+
 
         // Flash auto-hide
         document.querySelectorAll('.flash').forEach((el) => {

@@ -1,12 +1,4 @@
-use dorm_management;
 
-select * from users;
-
-select * from rooms;
-
-select * from payments; 
-select * from applications;
-select * from bookings; 
 
 
 
