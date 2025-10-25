@@ -43,7 +43,7 @@
         <table class="w-full border rounded-lg overflow-hidden">
             <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
                 <tr>
-                    <th class="p-3 border">ID</th>
+                    <th class="p-3 border"></th>
                     <th class="p-3 border">Loại dịch vụ</th>
                     <th class="p-3 border">Phòng</th>
                     <th class="p-3 border">Số tiền</th>
@@ -55,7 +55,7 @@
             <tbody class="text-center text-sm">
                 {% for p in payments %}
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3">{{ p.id }}</td>
+                    <td class="p-3">{{ loop.index }}</td>
                     <td class="p-3">
                         {% if p.service_type == 'deposit' %} Tiền cọc
                         {% elif p.service_type == 'room' %} Tiền phòng
