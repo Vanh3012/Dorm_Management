@@ -275,17 +275,20 @@ def pay(payment_id):
 @student_bp.route("/services", methods=["GET", "POST"])
 @login_required
 def services():
-    # Giá dịch vụ
-    TRASH_PRICE = 50000  # 50k / tháng
+    TRASH_PRICE = 50000  # 50k/tháng
 
     if request.method == "POST":
         service_type = request.form.get("service_type")
         description = request.form.get("description")
 
+        # Kiểm tra xem sinh viên có booking phòng đang active không
         booking = Booking.query.filter_by(user_id=current_user.id, status="active").first()
-        room_id = booking.room_id if booking else None
 
-        # Nếu là dịch vụ thu gom rác thì gán giá luôn, còn bảo trì sửa chữa thì admin nhập giá
+        if not booking:
+            flash("Bạn chưa có phòng! Vui lòng đăng ký phòng trước khi yêu cầu dịch vụ.", "danger")
+            return redirect(url_for("student.services"))
+
+        room_id = booking.room_id
         price = TRASH_PRICE if service_type == "trash" else 0
 
         req = ServiceRequest(
@@ -295,13 +298,21 @@ def services():
             description=description,
             price=price
         )
+
         db.session.add(req)
         db.session.commit()
         flash("Đã gửi yêu cầu dịch vụ!", "success")
         return redirect(url_for("student.services"))
 
-    service_requests = ServiceRequest.query.filter_by(user_id=current_user.id).order_by(ServiceRequest.created_at.asc()).all()
+    # Hiển thị danh sách yêu cầu dịch vụ
+    service_requests = (
+        ServiceRequest.query.filter_by(user_id=current_user.id)
+        .order_by(ServiceRequest.created_at.asc())
+        .all()
+    )
+
     return render_template("student/services.html", service_requests=service_requests)
+
 #-------------------------------------------------------
 
 # Complains

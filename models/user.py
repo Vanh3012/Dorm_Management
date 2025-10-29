@@ -17,7 +17,7 @@ class User(db.Model, UserMixin):
     phone_number = db.Column(db.String(15), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
 
-    room_id = db.Column(db.Integer, db.ForeignKey("rooms.id"), nullable=True)  # phòng hiện tại
+    room_id = db.Column(db.Integer, db.ForeignKey("rooms.id"), nullable=True)
 
     role = db.Column(
         db.Enum("admin", "student", name="user_roles"),

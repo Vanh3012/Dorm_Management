@@ -15,8 +15,8 @@ from models.notification import Notification
 from extensions import db
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from sqlalchemy import or_, func
-import unicodedata
+from sqlalchemy import or_, func, extract
+import unicodedata, calendar
 
 admin_bp = Blueprint("admin", __name__, template_folder="../../templates/admin")
 
@@ -30,31 +30,97 @@ def restrict_to_admin():
         flash("Bạn không có quyền truy cập trang quản trị.", "danger")
         return redirect(url_for("auth.login"))
 #-------------------------------------------------------
-# Dashboard
+#Dashboard
 @admin_bp.route("/dashboard")
 @login_required
 def dashboard():
+    # Lấy tháng/năm từ query params (mặc định là tháng/năm hiện tại)
+    selected_month = request.args.get('month', type=int)
+    selected_year = request.args.get('year', type=int)
+    
+    # Nếu không có giá trị, dùng tháng/năm hiện tại
+    if not selected_month:
+        selected_month = datetime.now().month
+    if not selected_year:
+        selected_year = datetime.now().year
+
+    # Tổng sinh viên, phòng, hóa đơn chưa thanh toán
     total_students = User.query.filter_by(role="student").count()
-    occupied_rooms = Booking.query.filter_by(status="active").count()
+    total_rooms = Room.query.count()
     unpaid_bills = Payment.query.filter(Payment.status != "success").count()
-    pending_applications = Booking.query.filter_by(status="pending").count()
-    available_rooms = Room.query.filter(Room.available > 0).count()
-    services_open = ServiceRequest.query.filter(
-        ServiceRequest.status.in_(["pending", "in_progress"])
-    ).count()
-    complains_open = Complain.query.filter(Complain.status != "closed").count()
-    announcements_count = Announcement.query.count()
+
+    # Thống kê doanh thu theo loại dịch vụ trong tháng đã chọn
+    revenue_by_service = (
+        db.session.query(Payment.service_type, func.sum(Payment.amount))
+        .filter(
+            Payment.month_paid == selected_month,
+            Payment.year_paid == selected_year,
+            Payment.status == "success"
+        )
+        .group_by(Payment.service_type)
+        .all()
+    )
+    service_name_map = {
+    "deposit": "Tiền đặt cọc",
+    "utilities": "Điện & Nước",
+    "trash": "Thu gom rác",
+    "maintenance": "Bảo trì - Sửa chữa"
+    }
+    service_labels = [service_name_map.get(r[0], "Khác") for r in revenue_by_service]
+    service_values = [float(r[1]) if r[1] else 0 for r in revenue_by_service]
+
+    # Tổng tiền hóa đơn tháng đã chọn
+    total_revenue = sum(service_values)
+
+    # Số sinh viên đăng ký mới theo tuần trong tháng đã chọn
+    start_of_month = datetime(selected_year, selected_month, 1)
+    last_day = calendar.monthrange(selected_year, selected_month)[1]
+    end_of_month = datetime(selected_year, selected_month, last_day, 23, 59, 59)
+    
+    # Lấy tất cả booking trong tháng
+    bookings_this_month = Booking.query.filter(
+        Booking.created_at >= start_of_month,
+        Booking.created_at <= end_of_month
+    ).order_by(Booking.created_at).all()
+    
+    # Chia theo tuần (7 ngày một tuần)
+    week_counts = {}
+    for booking in bookings_this_month:
+        # Tính tuần thứ mấy trong tháng (bắt đầu từ ngày 1)
+        day_of_month = booking.created_at.day
+        week_number = ((day_of_month - 1) // 7) + 1
+        week_label = f"Tuần {week_number}"
+        week_counts[week_label] = week_counts.get(week_label, 0) + 1
+    
+    # Đảm bảo có đủ 4-5 tuần
+    max_weeks = (last_day // 7) + (1 if last_day % 7 else 0)
+    reg_labels = [f"Tuần {i+1}" for i in range(max_weeks)]
+    reg_values = [week_counts.get(label, 0) for label in reg_labels]
+
+    # Phòng trống vs đã có người
+    occupied = Room.query.filter(Room.available < Room.capacity).count()
+    empty = Room.query.filter(Room.available == Room.capacity).count()
+
+    # Danh sách tháng và năm
+    months = list(range(1, 13))
+    years = list(range(2020, datetime.now().year + 2))
 
     return render_template(
         "admin/admin_dashboard.html",
         total_students=total_students,
-        occupied_rooms=occupied_rooms,
+        total_rooms=total_rooms,
         unpaid_bills=unpaid_bills,
-        pending_applications=pending_applications,
-        available_rooms=available_rooms,
-        services_open=services_open,
-        complains_open=complains_open,
-        announcements_count=announcements_count,
+        total_revenue=total_revenue,
+        service_labels=service_labels,
+        service_values=service_values,
+        reg_labels=reg_labels,
+        reg_values=reg_values,
+        occupied=occupied,
+        empty=empty,
+        selected_month=selected_month,
+        selected_year=selected_year,
+        months=months,
+        years=years
     )
 #-------------------------------------------------------
 # Quản lý phòng
@@ -193,8 +259,17 @@ def manage_applications():
         flash("Bạn không có quyền truy cập!", "danger")
         return redirect(url_for("home"))
 
-    applications = ApplicationRoom.query.order_by(ApplicationRoom.created_at.asc()).all()
-    return render_template("admin/manage_applications.html", applications=applications)
+    month = request.args.get("month", type=int)
+    year = request.args.get("year", type=int, default=datetime.now().year)
+
+    query = ApplicationRoom.query
+    if month:
+        query = query.filter(db.extract('month', ApplicationRoom.created_at) == month)
+    if year:
+        query = query.filter(db.extract('year', ApplicationRoom.created_at) == year)
+
+    applications = query.order_by(ApplicationRoom.created_at.desc()).all()
+    return render_template("admin/manage_applications.html", applications=applications, month=month, year=year)
 
 # API: Lấy chi tiết 1 đơn (JSON) -> dùng AJAX gọi
 @admin_bp.route("/api/application/<int:app_id>")
@@ -396,9 +471,17 @@ import random
 @admin_bp.route("/payments")
 @login_required
 def payments():
-    # Lấy toàn bộ hóa đơn, sắp xếp mới nhất trước
-    payments = Payment.query.order_by(Payment.created_at.desc()).all()
-    return render_template("admin/payments.html", payments=payments, now=datetime.utcnow)
+    month = request.args.get("month", type=int)
+    year = request.args.get("year", type=int, default=datetime.now().year)
+
+    query = Payment.query
+    if month:
+        query = query.filter(db.extract('month', Payment.created_at) == month)
+    if year:
+        query = query.filter(db.extract('year', Payment.created_at) == year)
+
+    payments = query.order_by(Payment.created_at.desc()).all()
+    return render_template("admin/payments.html", payments=payments, month=month, year=year, current_time=datetime.now())
 
 @admin_bp.route("/payments/<int:payment_id>/mark_paid", methods=["POST"])
 @login_required
@@ -478,9 +561,17 @@ def generate_bills():
 @admin_bp.route("/services")
 @login_required
 def manage_services():
-    # Lấy tất cả yêu cầu dịch vụ
-    service_requests = ServiceRequest.query.order_by(ServiceRequest.id.asc()).all()
-    return render_template("admin/services.html", service_requests=service_requests)
+    month = request.args.get("month", type=int)
+    year = request.args.get("year", type=int, default=datetime.now().year)
+
+    query = ServiceRequest.query
+    if month:
+        query = query.filter(db.extract('month', ServiceRequest.created_at) == month)
+    if year:
+        query = query.filter(db.extract('year', ServiceRequest.created_at) == year)
+
+    service_requests = query.order_by(ServiceRequest.created_at.desc()).all()
+    return render_template("admin/services.html", service_requests=service_requests, month=month, year=year)
 
 @admin_bp.route("/services/<int:req_id>/update/<string:status>")
 @login_required
@@ -579,8 +670,16 @@ def set_service_price(req_id):
 @admin_bp.route("/complains")
 @login_required
 def manage_complains():
-    complains = Complain.query.order_by(Complain.created_at.desc()).all()
-    return render_template("admin/complains.html", complains=complains)
+    month = request.args.get("month", type=int)
+    year = request.args.get("year", type=int, default=datetime.now().year)
+
+    query = Complain.query
+    if month:
+        query = query.filter(db.extract('month', Complain.created_at) == month)
+    if year:
+        query = query.filter(db.extract('year', Complain.created_at) == year)
+    complains = query.order_by(Complain.created_at.desc()).all()
+    return render_template("admin/complains.html", complains=complains, month=month, year=year)
 
 #  Trả lời complain
 @admin_bp.route("/complains/<int:complain_id>/reply", methods=["POST"])
