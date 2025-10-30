@@ -2,90 +2,77 @@
 {% block content %}
 
 <div class="bg-white shadow rounded-lg p-6">
-    <h2 class="text-2xl font-bold mb-6">Quản lý thanh toán</h2>
+    <h2 class="text-2xl font-bold mb-6">Thanh toán hóa đơn</h2>
 
     <!-- Bộ lọc -->
     <div class="flex flex-wrap gap-2 mb-6">
-        <a href="{{ url_for('student.payments', type='all') }}"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition
-              {% if current_type == 'all' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
-            Tất cả
+        {% set filters = {
+        'all': 'Tất cả',
+        'deposit': 'Tiền cọc',
+        'room': 'Tiền phòng',
+        'utilities': 'Điện/Nước',
+        'trash': 'Thu gom rác',
+        'maintenance': 'Bảo trì'
+        } %}
+        {% for type, label in filters.items() %}
+        <a href="{{ url_for('student.payments', type=type) }}" class="px-4 py-2 rounded-lg text-sm font-medium transition
+           {% if current_type == type %}
+               bg-red-600 text-white
+           {% else %}
+               bg-gray-100 hover:bg-gray-200
+           {% endif %}">
+            {{ label }}
         </a>
-        <a href="{{ url_for('student.payments', type='deposit') }}"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition
-              {% if current_type == 'deposit' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
-            Tiền cọc
-        </a>
-        <a href="{{ url_for('student.payments', type='room') }}"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition
-              {% if current_type == 'room' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
-            Tiền phòng
-        </a>
-        <a href="{{ url_for('student.payments', type='utilities') }}"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition
-              {% if current_type == 'utilities' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
-            Điện/Nước
-        </a>
-        <a href="{{ url_for('student.payments', type='trash') }}"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition
-              {% if current_type == 'trash' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
-            Thu gom rác
-        </a>
-        <a href="{{ url_for('student.payments', type='maintenance') }}"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition
-              {% if current_type == 'maintenance' %} bg-red-600 text-white {% else %} bg-gray-100 hover:bg-gray-200 {% endif %}">
-            Bảo trì
-        </a>
+        {% endfor %}
     </div>
 
     <!-- Bảng thanh toán -->
     <div class="overflow-x-auto">
-        <table class="w-full border rounded-lg overflow-hidden">
+        <table class="w-full border rounded-lg overflow-hidden text-sm">
             <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
                 <tr>
-                    <th class="p-3 border"></th>
-                    <th class="p-3 border">Loại dịch vụ</th>
+                    <th class="p-3 border">#</th>
+                    <th class="p-3 border">Dịch vụ</th>
                     <th class="p-3 border">Phòng</th>
                     <th class="p-3 border">Số tiền</th>
-                    <th class="p-3 border">Thời gian</th>
+                    <th class="p-3 border">Ngày tạo</th>
                     <th class="p-3 border">Trạng thái</th>
-                    <th class="p-3 border">-</th>
+                    <th class="p-3 border">Thao tác</th>
                 </tr>
             </thead>
-            <tbody class="text-center text-sm">
+            <tbody class="text-center">
                 {% for p in payments %}
-                <tr class="border-b hover:bg-gray-50">
+                <tr class="border-b hover:bg-gray-50 transition">
                     <td class="p-3">{{ loop.index }}</td>
                     <td class="p-3">
-                        {% if p.service_type == 'deposit' %} Tiền cọc
-                        {% elif p.service_type == 'room' %} Tiền phòng
-                        {% elif p.service_type == 'utilities' %} Điện/Nước
-                        {% elif p.service_type == 'trash' %} Thu gom rác
-                        {% elif p.service_type == 'maintenance' %} Bảo trì sửa chữa
-                        {% endif %}
+                        {% set label_map = {
+                        'deposit': 'Tiền cọc',
+                        'room': 'Tiền phòng',
+                        'utilities': 'Điện/Nước',
+                        'trash': 'Thu gom rác',
+                        'maintenance': 'Bảo trì'
+                        } %}
+                        {{ label_map.get(p.service_type, p.service_type) }}
                     </td>
-                    <td class="p-3">{{ p.room.block }} - {{ p.room.room_number }} - {{ p.room.address }}</td>
+                    <td class="p-3">{{ p.room.block }} - {{ p.room.room_number }}</td>
                     <td class="p-3 font-semibold text-blue-700">{{ "{:,.0f}".format(p.amount) }} đ</td>
                     <td class="p-3">{{ p.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
                     <td class="p-3">
                         {% if p.status == 'pending' %}
-                        <span class="px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-700">
-                            Chưa thanh toán
-                        </span>
+                        <span class="px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-700">Chưa thanh
+                            toán</span>
                         {% else %}
-                        <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">
-                            Đã thanh toán
-                        </span>
+                        <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">Đã thanh
+                            toán</span>
                         {% endif %}
                     </td>
                     <td class="p-3">
                         {% if p.status == 'pending' %}
-                        <form method="POST" action="{{ url_for('student.pay', payment_id=p.id) }}">
-                            <button type="submit"
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs">
-                                Thanh toán
-                            </button>
-                        </form>
+                        <button
+                            onclick="openPaymentModal('{{ p.id }}', '{{ p.service_type }}', '{{ p.amount }}', '{{ p.month_paid }}', '{{ p.year_paid }}', '{{ p.room.room_number }}')"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs shadow-sm">
+                            Thanh toán
+                        </button>
                         {% else %}
                         <span class="text-gray-400">-</span>
                         {% endif %}
@@ -100,5 +87,136 @@
         </table>
     </div>
 </div>
+
+<!-- Modal Thanh toán -->
+<div id="paymentModal"
+    class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-opacity duration-300">
+    <div class="bg-white rounded-xl w-full max-w-md shadow-xl relative p-6 space-y-4 animate-fade-in">
+        <button onclick="closePaymentModal()" class="absolute top-3 right-3 text-gray-500 hover:text-black">✕</button>
+        <h2 class="text-xl font-bold text-gray-800">Thông tin thanh toán</h2>
+
+        <div class="text-sm text-gray-700 space-y-2">
+            <p><b>Dịch vụ:</b> <span id="serviceType"></span></p>
+            <p><b>Phòng:</b> <span id="roomInfo"></span></p>
+            <p><b>Số tiền:</b> <span id="amount"></span> đ</p>
+            <p><b>Kỳ thanh toán:</b> <span id="period"></span></p>
+            <hr>
+            <p><b>Ngân hàng:</b> MB Bank – Học Viện Công Nghệ Bưu Chính Viễn Thông</p>
+            <p><b>Số tài khoản:</b> <span class="font-semibold">97042200012345</span></p>
+            <p><b>Nội dung chuyển khoản:</b>
+                <code id="transferContent" class="bg-gray-100 px-2 py-1 rounded text-sm"></code>
+            </p>
+
+            <div class="flex justify-center py-3">
+                <img id="qrImage" src="" alt="QR Code" class="w-48 h-48 object-contain border rounded-md">
+            </div>
+
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded text-xs">
+                🔔 <b>Lưu ý:</b> Quét mã hoặc chuyển khoản đúng nội dung. Sau đó bấm “Hoàn thành” để xác nhận.
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4">
+                <button onclick="closePaymentModal()"
+                    class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm">
+                    Đóng
+                </button>
+                <button id="confirmPaymentBtn"
+                    class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm">
+                    Hoàn thành thanh toán
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fade-in {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in {
+        animation: fade-in 0.25s ease-out;
+    }
+</style>
+
+<script>
+    let currentPaymentId = null;
+
+    function removeVietnameseTones(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            .replace(/đ/g, "d").replace(/Đ/g, "D").toUpperCase();
+    }
+
+    const bankCode = "MB"; 
+        const accountNumber = "0388573796"; 
+        const accountName = "LE VIET ANH"; 
+
+        function openPaymentModal(id, service, amount, month, year, room) {
+            currentPaymentId = id;
+            const map = {
+                'deposit': 'Tiền cọc',
+                'room': 'Tiền phòng',
+                'utilities': 'Điện/Nước',
+                'trash': 'Thu gom rác',
+                'maintenance': 'Bảo trì'
+            };
+
+            const studentId = "{{ current_user.student_id }}";
+            const fullnameRaw = "{{ current_user.fullname }}";
+            const fullnameNoAccent = removeVietnameseTones(fullnameRaw);
+            const transferText = `${studentId} - ${fullnameNoAccent} - ${room}`;
+
+            document.getElementById("serviceType").textContent = map[service] || service;
+            document.getElementById("roomInfo").textContent = room;
+            document.getElementById("amount").textContent = parseInt(amount).toLocaleString("vi-VN");
+            document.getElementById("period").textContent = `${month}/${year}`;
+            document.getElementById("transferContent").textContent = transferText;
+
+            const qrUrl = `https://img.vietqr.io/image/${bankCode}-${accountNumber}-compact.png?amount=${amount}&addInfo=${encodeURIComponent(transferText)}&accountName=${encodeURIComponent(accountName)}`;
+            document.getElementById("qrImage").src = qrUrl;
+
+            document.getElementById("paymentModal").classList.remove("hidden");
+        }
+
+    function closePaymentModal() {
+        document.getElementById("paymentModal").classList.add("hidden");
+        currentPaymentId = null;
+    }
+
+    document.getElementById("confirmPaymentBtn").addEventListener("click", async () => {
+            if (!currentPaymentId) return;
+
+            const btn = document.getElementById("confirmPaymentBtn");
+            btn.disabled = true;
+            btn.textContent = "Đang xử lý...";
+
+            try {
+                const res = await fetch(`/student/pay/${currentPaymentId}`, { method: "POST" });
+                const data = await res.json();
+
+                if (data.success) {
+                    closePaymentModal();
+                    // Reload sau 1 giây
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    alert(data.message || "Có lỗi khi xác nhận thanh toán!");
+                }
+            } catch (err) {
+                alert("Không thể kết nối máy chủ!");
+            }
+
+            btn.disabled = false;
+            btn.textContent = "Hoàn thành thanh toán";
+        });
+
+</script>
 
 {% endblock %}

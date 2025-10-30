@@ -2,6 +2,30 @@
 {% block content %}
 <h2 class="text-2xl font-bold mb-4">Quản lý thông báo</h2>
 
+<!--Lọc-->
+<form method="get" class="bg-white p-4 rounded-lg shadow mb-6 flex flex-wrap gap-3 items-end">
+    <div>
+        <label class="text-sm text-gray-600">Tháng</label>
+        <input type="number" name="month" class="border rounded px-2 py-1 w-20" min="1" max="12"
+            value="{{ filters.month or '' }}">
+    </div>
+    <div>
+        <label class="text-sm text-gray-600">Năm</label>
+        <input type="number" name="year" class="border rounded px-2 py-1 w-24" value="{{ filters.year or '' }}">
+    </div>
+    <div>
+        <label class="text-sm text-gray-600">Từ ngày</label>
+        <input type="date" name="date_from" class="border rounded px-2 py-1" value="{{ filters.date_from or '' }}">
+    </div>
+    <div>
+        <label class="text-sm text-gray-600">Đến ngày</label>
+        <input type="date" name="date_to" class="border rounded px-2 py-1" value="{{ filters.date_to or '' }}">
+    </div>
+    <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Lọc</button>
+    <a href="{{ url_for('admin.manage_announcements') }}" class="text-gray-500 underline text-sm">Xóa lọc</a>
+</form>
+
+
 <!-- Nút mở modal -->
 <div class="flex justify-end mb-4">
     <button onclick="openModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Tạo thông

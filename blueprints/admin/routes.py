@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, jsonify , url_for, flash, request, current_app
+from flask import Blueprint, render_template, redirect, jsonify , url_for, flash, request, current_app, send_file
 from flask_login import login_required, current_user
 from models.user import User
 from models.booking import Booking
@@ -9,7 +9,7 @@ from models.service_request import ServiceRequest
 from models.complain import Complain
 from models.complain_image import ComplainImage
 from models.announcement import Announcement 
-import os, time
+import os, time, io 
 from models.room_image import RoomImage
 from models.notification import Notification
 from extensions import db
@@ -17,6 +17,8 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from sqlalchemy import or_, func, extract
 import unicodedata, calendar
+import pandas as pd
+from math import ceil
 
 admin_bp = Blueprint("admin", __name__, template_folder="../../templates/admin")
 
@@ -122,12 +124,90 @@ def dashboard():
         months=months,
         years=years
     )
+
+# Xuất file excel thống kê
+@admin_bp.route("/dashboard/export_excel")
+@login_required
+def export_dashboard_excel():
+    total_students = User.query.filter_by(role="student").count()
+    total_rooms = Room.query.count()
+    total_bookings = Booking.query.count()
+    total_payments = Payment.query.count()
+    unpaid_payments = Payment.query.filter_by(status="pending").count()
+
+    df_summary = pd.DataFrame([
+        {"Hạng mục": "Tổng sinh viên", "Số lượng": total_students},
+        {"Hạng mục": "Tổng phòng", "Số lượng": total_rooms},
+        {"Hạng mục": "Đang thuê phòng", "Số lượng": total_bookings},
+        {"Hạng mục": "Tổng hóa đơn", "Số lượng": total_payments},
+        {"Hạng mục": "Chưa thanh toán", "Số lượng": unpaid_payments},
+    ])
+
+    # Chi tiết hóa đơn
+    payments = Payment.query.join(User, Payment.user_id == User.id).join(Room, Payment.room_id == Room.id).all()
+    payment_data = []
+    for p in payments:
+        payment_data.append({
+            "MSSV": p.user.student_id if hasattr(p.user, "student_id") else "",
+            "Họ tên": p.user.fullname if hasattr(p.user, "fullname") else "",
+            "Phòng": f"{p.room.room_number} ({p.room.block})" if hasattr(p.room, "room_number") else "",
+            "Loại dịch vụ": {
+                "rent": "Tiền phòng",
+                "deposit": "Tiền đặt cọc",
+                "utilities": "Điện & Nước",
+                "maintenance": "Bảo trì",
+                "trash": "Thu gom rác"
+            }.get(p.service_type, p.service_type),
+            "Tháng": p.month_paid,
+            "Năm": p.year_paid,
+            "Số tiền (VNĐ)": float(p.amount or 0),
+            "Trạng thái": "Đã thanh toán" if p.status == "success" else "Chưa thanh toán",
+            "Phương thức": p.payment_method or "",
+            "Ngày tạo": p.created_at.strftime("%d/%m/%Y") if p.created_at else "",
+            "Cập nhật cuối": p.updated_at.strftime("%d/%m/%Y") if p.updated_at else "",
+        })
+    df_payments = pd.DataFrame(payment_data)
+
+    #Danh sách sinh viên
+    students = User.query.filter_by(role="student").all()
+    student_data = [{
+        "MSSV": s.student_id,
+        "Họ tên": s.fullname,
+        "Lớp": s.class_id,
+        "Email": s.email,
+        "SĐT": s.phone_number,
+        "Ngày tạo": s.created_at.strftime("%d/%m/%Y") if s.created_at else ""
+    } for s in students]
+    df_students = pd.DataFrame(student_data)
+
+    #Ghi ra file Excel
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df_summary.to_excel(writer, index=False, sheet_name="Tổng quan")
+        df_students.to_excel(writer, index=False, sheet_name="Sinh viên")
+        df_payments.to_excel(writer, index=False, sheet_name="Hóa đơn chi tiết")
+
+        workbook = writer.book
+        worksheet = writer.sheets["Tổng quan"]
+        header_format = workbook.add_format({"bold": True, "bg_color": "#CCE5FF", "border": 1})
+        for col_num, value in enumerate(df_summary.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+
+    output.seek(0)
+    filename = f"Thong_ke_KTX_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.xlsx"
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
 #-------------------------------------------------------
 # Quản lý phòng
 @admin_bp.route("/rooms")
 @login_required
 def manage_rooms():
-    # Bộ lọc từ query string
     address = request.args.get("address")
     block = request.args.get("block")
     room_number = request.args.get("room_number")
@@ -151,14 +231,22 @@ def manage_rooms():
 def room_detail(room_id):
     room = Room.query.get_or_404(room_id)
 
-    # Tìm tất cả sinh viên đang ở phòng này (bookings active)
     bookings = (
-        Booking.query.filter_by(room_id=room_id, status="active")
-        .join(User, Booking.user_id == User.id)
+        Booking.query
+        .filter_by(room_id=room.id)
+        .join(User, User.id == Booking.user_id)
+        .add_entity(User)
         .all()
     )
 
-    return render_template("admin/room_detail.html", room=room, bookings=bookings)
+    active_bookings = []
+    for booking, user in bookings:
+        booking.user = user
+        if booking.status == "active":
+            active_bookings.append(booking)
+
+    return render_template("admin/room_detail.html", room=room, bookings=active_bookings)
+
 
 # Sửa phòng
 @admin_bp.route("/rooms/edit", methods=["GET", "POST"])
@@ -168,19 +256,18 @@ def edit_room(room_id=None):
     room = Room.query.get(room_id) if room_id else None
 
     if request.method == "POST":
-        # --- nhận form cơ bản (có thể thêm các trường giá nếu bạn có) ---
         block        = (request.form.get("block") or "").strip()
         room_number  = (request.form.get("room_number") or "").strip()
         address      = (request.form.get("address") or "").strip()
         capacity     = int(request.form.get("capacity") or 0)
 
-        if room:  # cập nhật
+        if room:
             room.block = block
             room.room_number = room_number
             room.address = address
             room.capacity = capacity
             flash("Cập nhật phòng thành công!", "success")
-        else:     # thêm mới
+        else:  
             room = Room(
                 block=block,
                 room_number=room_number,
@@ -189,15 +276,12 @@ def edit_room(room_id=None):
                 current_occupancy=0,
             )
             db.session.add(room)
-            # cần ID để gắn ảnh
             db.session.flush()
 
             flash("Thêm phòng thành công!", "success")
 
-        # --- upload nhiều ảnh ---
         files = request.files.getlist("images")
         if files:
-            # Lưu theo thư mục con address/block (nếu muốn phân loại)
             base_folder = os.path.join(current_app.config["UPLOAD_FOLDER_ROOMS"], address, block)
             os.makedirs(base_folder, exist_ok=True)
 
@@ -205,7 +289,6 @@ def edit_room(room_id=None):
                 if not (f and f.filename and allowed_file(f.filename)):
                     continue
                 safe = secure_filename(f.filename)
-                # chống trùng tên
                 filename = f"{int(time.time()*1000)}_{safe}"
                 save_path = os.path.join(base_folder, filename)
                 f.save(save_path)
@@ -229,7 +312,7 @@ def kick_student(room_id, booking_id):
         return redirect(url_for("admin.room_detail", room_id=room_id))
 
     # Cập nhật trạng thái booking
-    booking.status = "canceled"   # hoặc "finished" tuỳ quy ước
+    booking.status = "canceled"
     booking.end_date = db.func.current_date()
 
     # Cập nhật phòng
@@ -259,17 +342,59 @@ def manage_applications():
         flash("Bạn không có quyền truy cập!", "danger")
         return redirect(url_for("home"))
 
+    status = request.args.get("status")
+    address = request.args.get("address")
+    block = request.args.get("block")
+    room_number = request.args.get("room_number")
     month = request.args.get("month", type=int)
     year = request.args.get("year", type=int, default=datetime.now().year)
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
 
-    query = ApplicationRoom.query
+    query = ApplicationRoom.query.join(Room, ApplicationRoom.room_id == Room.id)
+
+    if status:
+        query = query.filter(ApplicationRoom.status == status)
+    if address:
+        query = query.filter(Room.address == address)
+    if block:
+        query = query.filter(Room.block == block)
+    if room_number:
+        query = query.filter(Room.room_number == room_number)
     if month:
-        query = query.filter(db.extract('month', ApplicationRoom.created_at) == month)
+        query = query.filter(db.extract("month", ApplicationRoom.created_at) == month)
     if year:
-        query = query.filter(db.extract('year', ApplicationRoom.created_at) == year)
+        query = query.filter(db.extract("year", ApplicationRoom.created_at) == year)
+    if date_from:
+        try:
+            start_date = datetime.strptime(date_from, "%Y-%m-%d")
+            query = query.filter(ApplicationRoom.created_at >= start_date)
+        except:
+            pass
+    if date_to:
+        try:
+            end_date = datetime.strptime(date_to, "%Y-%m-%d")
+            query = query.filter(ApplicationRoom.created_at <= end_date)
+        except:
+            pass
 
     applications = query.order_by(ApplicationRoom.created_at.desc()).all()
-    return render_template("admin/manage_applications.html", applications=applications, month=month, year=year)
+
+    return render_template(
+        "admin/manage_applications.html",
+        applications=applications,
+        filters={
+            "status": status,
+            "address": address,
+            "block": block,
+            "room_number": room_number,
+            "month": month,
+            "year": year,
+            "date_from": date_from,
+            "date_to": date_to
+        }
+    )
+
 
 # API: Lấy chi tiết 1 đơn (JSON) -> dùng AJAX gọi
 @admin_bp.route("/api/application/<int:app_id>")
@@ -418,13 +543,15 @@ def normalize_text(s):
 @login_required
 def students():
     keyword = request.args.get("q", "").strip().lower()
+    page = request.args.get("page", 1, type=int)
+    per_page = 20
+
     normalized_keyword = normalize_text(keyword)
 
     students = User.query.filter_by(role="student").all()
     data = []
 
     for s in students:
-        # Ghép các trường để tìm một lần
         combined = f"{s.student_id} {s.fullname} {s.class_id} {s.citizen_id} {s.phone_number} {s.email or ''}"
         normalized_text = normalize_text(combined)
 
@@ -441,7 +568,25 @@ def students():
                 "unpaid": unpaid
             })
 
-    return render_template("admin/students.html", students=data, keyword=keyword)
+    total_pages = ceil(len(data) / per_page)
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_data = data[start:end]
+
+    # hiển thị dải trang động, chỉ show quanh trang hiện tại
+    visible_range = []
+    for p in range(1, total_pages + 1):
+        if p == 1 or p == total_pages or abs(p - page) <= 2:
+            visible_range.append(p)
+
+    return render_template(
+        "admin/students.html",
+        students=paginated_data,
+        keyword=keyword,
+        page=page,
+        total_pages=total_pages,
+        visible_range=visible_range
+    )
 
 # Chi tiết sinh viên
 @admin_bp.route("/students/<int:student_id>/detail")
@@ -480,8 +625,63 @@ def payments():
     if year:
         query = query.filter(db.extract('year', Payment.created_at) == year)
 
+    status = request.args.get("status")           
+    service_type = request.args.get("service_type")  
+    month = request.args.get("month", type=int)
+    year = request.args.get("year", type=int)
+    min_amount = request.args.get("min_amount", type=float)
+    max_amount = request.args.get("max_amount", type=float)
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
+
+    # Lọc trạng thái
+    if status in ["success", "pending"]:
+        query = query.filter(Payment.status == status)
+
+    # Lọc loại dịch vụ
+    if service_type:
+        query = query.filter(Payment.service_type == service_type)
+
+    # Lọc theo tháng/năm
+    if month:
+        query = query.filter(Payment.month_paid == month)
+    if year:
+        query = query.filter(Payment.year_paid == year)
+
+    # Lọc theo khoảng giá trị
+    if min_amount:
+        query = query.filter(Payment.amount >= min_amount)
+    if max_amount:
+        query = query.filter(Payment.amount <= max_amount)
+
+    # Lọc theo khoảng thời gian tạo (ngày)
+    if date_from:
+        try:
+            start_date = datetime.strptime(date_from, "%Y-%m-%d")
+            query = query.filter(Payment.created_at >= start_date)
+        except:
+            pass
+    if date_to:
+        try:
+            end_date = datetime.strptime(date_to, "%Y-%m-%d")
+            query = query.filter(Payment.created_at <= end_date)
+        except:
+            pass
+    
     payments = query.order_by(Payment.created_at.desc()).all()
-    return render_template("admin/payments.html", payments=payments, month=month, year=year, current_time=datetime.now())
+    return render_template("admin/payments.html",
+                            payments=payments, 
+                            current_time=datetime.now(), 
+                            filters={
+                            "status": status,
+                            "service_type": service_type,
+                            "month": month,
+                            "year": year,
+                            "min_amount": min_amount,
+                            "max_amount": max_amount,
+                            "date_from": date_from,
+                            "date_to": date_to
+                        })
 
 @admin_bp.route("/payments/<int:payment_id>/mark_paid", methods=["POST"])
 @login_required
@@ -492,68 +692,122 @@ def mark_payment_paid(payment_id):
     flash("Hóa đơn đã được xác nhận thanh toán!", "success")
     return redirect(url_for("admin.payments"))
 
-# Tự động tạo hóa đơn tiền phòng, điện nước hàng tháng cho tất cả booking active
-@admin_bp.route('/generate_bills', methods=['GET'])
-def generate_bills():
+
+# Tải file Excel mẫu để nhập hóa đơn
+@admin_bp.route('/generate_bills_template')
+def generate_bills_template():
+    rooms = Room.query.all()
+
+    data = []
+    for room in rooms:
+        data.append({
+            "Room ID": room.id,
+            "Address": room.address,
+            "Block": room.block,
+            "Room Number": room.room_number,
+            "Price Room": room.price_room or 0,
+            "Electricity Used (kWh)": "",
+            "Water Used (m³)": "",
+            "Other Fees": "",
+            "Note": "",
+        })
+
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    df.to_excel(output, index=False)
+    output.seek(0)
+
+    now = datetime.now()
+    filename = f"bills_template_{now.month}_{now.year}.xlsx"
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+# Upload file Excel để tạo hóa đơn từ dữ liệu thực tế
+@admin_bp.route('/upload_bills_excel', methods=['POST'])
+def upload_bills_excel():
+    file = request.files.get('file')
+    if not file or not file.filename.endswith('.xlsx'):
+        flash('Vui lòng chọn file Excel hợp lệ (.xlsx)', 'danger')
+        return redirect(url_for('admin.payments'))
+
+    try:
+        df = pd.read_excel(file)
+    except Exception as e:
+        flash(f'Lỗi khi đọc file Excel: {e}', 'danger')
+        return redirect(url_for('admin.payments'))
+
+    created = 0
+    skipped = 0
+    errors = []
     today = datetime.today()
-    current_month = today.month
-    current_year = today.year
+    current_month, current_year = today.month, today.year
 
-    bookings = Booking.query.filter_by(status="active").all()  
-    new_bills = 0
-    
-    for booking in bookings:
-        user = booking.user
-        room = booking.room
+    for index, row in df.iterrows():
+        try:
+            room_id = int(row['Room ID'])
+            room = Room.query.get(room_id)
+            if not room:
+                skipped += 1
+                errors.append(f"Dòng {index+2}: Không tìm thấy phòng ID {room_id}")
+                continue
 
-        # Kiểm tra hóa đơn tháng này đã tồn tại chưa
-        existing_bill = Payment.query.filter_by(
-            room_id=room.id,
-            user_id=user.id,
-            month_paid=current_month,
-            year_paid=current_year,
-            service_type="utilities"
-        ).first()
+            booking = Booking.query.filter_by(room_id=room_id, status="active").first()
+            if not booking:
+                skipped += 1
+                errors.append(f"Dòng {index+2}: Phòng {room.room_number} chưa có sinh viên đang thuê.")
+                continue
 
-        if existing_bill:
-            continue  # bỏ qua nếu đã có hóa đơn tháng này, hoặc vừa cọc phòng tháng này
+            # Đọc dữ liệu từ Excel
+            elec_used = float(row.get('Electricity Used (kWh)', 0) or 0)
+            water_used = float(row.get('Water Used (m³)', 0) or 0)
+            other_fees = float(row.get('Other Fees', 0) or 0)
 
-        # Tạo số điện nước ngẫu nhiên
-        electricity_usage = random.randint(30, 80)
-        water_usage = random.randint(3, 10)  
+            elec_cost = elec_used * (room.price_electricity or 0)
+            water_cost = water_used * (room.price_water or 0)
+            room_cost = float(row.get('Price Room', room.price_room or 0))
 
-        # tính tiền
-        electricity_bill = room.price_electricity * electricity_usage 
-        water_bill = room.price_water * water_usage               
-        total_amount = room.price_room + electricity_bill + water_bill
+            total = elec_cost + water_cost + room_cost + other_fees
 
-        # Tạo hóa đơn mới
-        new_payment = Payment(
-            user_id=user.id,
-            room_id=room.id,
-            booking_id=booking.id,
-            fullname=user.fullname,
-            student_id=user.student_id,
-            class_id=user.class_id,
-            citizen_id=user.citizen_id,
-            email=user.email,
-            phone_number=user.phone_number,
-            service_type="utilities",
-            month_paid=current_month,
-            year_paid=current_year,
-            address=f"Ký túc xá {room.block}",
-            block=room.block,
-            room_number=room.room_number,
-            amount=total_amount,
-            payment_method="cash",
-            status="pending"
-        )
+            # Tạo hóa đơn mới
+            payment = Payment(
+                user_id=booking.user_id,
+                room_id=room_id,
+                service_type='utilities',
+                month_paid=current_month,
+                year_paid=current_year,
+                amount=total,
+                payment_method='cash',
+                status='pending',
+                created_at=today,
+                updated_at=today,
+            )
+            db.session.add(payment)
+            created += 1
 
-        db.session.add(new_payment)
-        new_bills += 1
+        except Exception as e:
+            skipped += 1
+            errors.append(f"Dòng {index+2}: Lỗi không xác định ({e})")
 
     db.session.commit()
-    flash(f"Đã tạo {new_bills} hóa đơn mới cho tháng {current_month}/{current_year}", "success")
+
+    # Gửi thông báo kết quả
+    msg = f"Đã tạo {created} hóa đơn mới."
+    if skipped > 0:
+        msg += f" Bỏ qua {skipped} dòng lỗi."
+    flash(msg, 'success' if created > 0 else 'warning')
+
+    # Ghi log lỗi ra file
+    if errors:
+        with open("import_bills_log.txt", "w", encoding="utf-8") as f:
+            f.write("\n".join(errors))
+        flash(f"Chi tiết lỗi được lưu trong file import_bills_log.txt", "info")
+
     return redirect(url_for('admin.payments'))
 
 #-------------------------------------------------------
@@ -561,17 +815,59 @@ def generate_bills():
 @admin_bp.route("/services")
 @login_required
 def manage_services():
+    status = request.args.get("status")
+    service_type = request.args.get("service_type")
     month = request.args.get("month", type=int)
     year = request.args.get("year", type=int, default=datetime.now().year)
+    min_cost = request.args.get("min_cost", type=float)
+    max_cost = request.args.get("max_cost", type=float)
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
 
     query = ServiceRequest.query
+
+    if status:
+        query = query.filter(ServiceRequest.status == status)
+    if service_type:
+        query = query.filter(ServiceRequest.service_type == service_type)
     if month:
-        query = query.filter(db.extract('month', ServiceRequest.created_at) == month)
+        query = query.filter(db.extract("month", ServiceRequest.created_at) == month)
     if year:
-        query = query.filter(db.extract('year', ServiceRequest.created_at) == year)
+        query = query.filter(db.extract("year", ServiceRequest.created_at) == year)
+    if min_cost:
+        query = query.filter(ServiceRequest.cost >= min_cost)
+    if max_cost:
+        query = query.filter(ServiceRequest.cost <= max_cost)
+    if date_from:
+        try:
+            start_date = datetime.strptime(date_from, "%Y-%m-%d")
+            query = query.filter(ServiceRequest.created_at >= start_date)
+        except:
+            pass
+    if date_to:
+        try:
+            end_date = datetime.strptime(date_to, "%Y-%m-%d")
+            query = query.filter(ServiceRequest.created_at <= end_date)
+        except:
+            pass
 
     service_requests = query.order_by(ServiceRequest.created_at.desc()).all()
-    return render_template("admin/services.html", service_requests=service_requests, month=month, year=year)
+
+    return render_template(
+        "admin/services.html",
+        service_requests=service_requests,
+        filters={
+            "status": status,
+            "service_type": service_type,
+            "month": month,
+            "year": year,
+            "min_cost": min_cost,
+            "max_cost": max_cost,
+            "date_from": date_from,
+            "date_to": date_to,
+        },
+    )
+
 
 @admin_bp.route("/services/<int:req_id>/update/<string:status>")
 @login_required
@@ -722,8 +1018,42 @@ def close_complain(complain_id):
 #Announcement
 @admin_bp.route("/announcements")
 def manage_announcements():
-    anns = Announcement.query.order_by(Announcement.created_at.desc()).all()
-    return render_template("admin/announcements.html", announcements=anns)
+    month = request.args.get("month", type=int)
+    year = request.args.get("year", type=int, default=datetime.now().year)
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
+
+    query = Announcement.query
+
+    if month:
+        query = query.filter(db.extract("month", Announcement.created_at) == month)
+    if year:
+        query = query.filter(db.extract("year", Announcement.created_at) == year)
+    if date_from:
+        try:
+            start_date = datetime.strptime(date_from, "%Y-%m-%d")
+            query = query.filter(Announcement.created_at >= start_date)
+        except:
+            pass
+    if date_to:
+        try:
+            end_date = datetime.strptime(date_to, "%Y-%m-%d")
+            query = query.filter(Announcement.created_at <= end_date)
+        except:
+            pass
+
+    anns = query.order_by(Announcement.created_at.desc()).all()
+
+    return render_template(
+        "admin/announcements.html",
+        announcements=anns,
+        filters={
+            "month": month,
+            "year": year,
+            "date_from": date_from,
+            "date_to": date_to,
+        },
+    )
 
 @admin_bp.route("/announcements/create", methods=["POST"])
 def create_announcement():

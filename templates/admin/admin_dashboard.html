@@ -39,6 +39,15 @@
         </div>
     </div>
 
+    <!--Xuất file thống kê-->
+    <div class="flex justify-end mb-4">
+        <a href="{{ url_for('admin.export_dashboard_excel') }}"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm">
+            Xuất Excel thống kê
+        </a>
+    </div>
+
+
     <!-- Thống kê nhanh -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div

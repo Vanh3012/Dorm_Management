@@ -5,22 +5,80 @@
     <h1 class="text-2xl font-bold mb-6">Quản lý hóa đơn</h1>
 
     <!--Bộ lọc-->
-    <form method="get" class="flex gap-3 mb-4">
-        <select name="month" class="border px-2 py-1 rounded">
-            <option value="">-- Tháng --</option>
-            {% for m in range(1, 13) %}
-            <option value="{{ m }}" {% if month==m %}selected{% endif %}>Tháng {{ m }}</option>
-            {% endfor %}
-        </select>
-    
-        <select name="year" class="border px-2 py-1 rounded">
-            {% for y in range(2000, 2100) %}
-            <option value="{{ y }}" {% if year==y %}selected{% endif %}>{{ y }}</option>
-            {% endfor %}
-        </select>
-    
-        <button class="bg-blue-600 text-white px-3 py-1 rounded">Lọc</button>
+    <form method="get" class="bg-white p-4 rounded-lg shadow mb-6 flex flex-wrap gap-3 items-end">
+        <div>
+            <label class="text-sm text-gray-600">Tháng</label>
+            <input type="number" name="month" class="border rounded px-2 py-1 w-20" min="1" max="12"
+                value="{{ filters.month or '' }}">
+        </div>
+        <div>
+            <label class="text-sm text-gray-600">Năm</label>
+            <input type="number" name="year" class="border rounded px-2 py-1 w-24" value="{{ filters.year or '' }}">
+        </div>
+        <div>
+            <label class="text-sm text-gray-600">Từ ngày</label>
+            <input type="date" name="date_from" class="border rounded px-2 py-1" value="{{ filters.date_from or '' }}">
+        </div>
+        <div>
+            <label class="text-sm text-gray-600">Đến ngày</label>
+            <input type="date" name="date_to" class="border rounded px-2 py-1" value="{{ filters.date_to or '' }}">
+        </div>
+        <div>
+            <label class="text-sm text-gray-600">Trạng thái</label>
+            <select name="status" class="border rounded px-2 py-1">
+                <option value="">-- Tất cả --</option>
+                <option value="pending" {% if filters.status=='pending' %}selected{% endif %}>Chưa thanh toán</option>
+                <option value="success" {% if filters.status=='success' %}selected{% endif %}>Đã thanh toán</option>
+            </select>
+        </div>
+        <div>
+            <label class="text-sm text-gray-600">Dịch vụ</label>
+            <select name="service_type" class="border rounded px-2 py-1">
+                <option value="">-- Tất cả --</option>
+                <option value="deposit" {% if filters.service_type=='deposit' %}selected{% endif %}>Tiền cọc</option>
+                <option value="room" {% if filters.service_type=='room' %}selected{% endif %}>Tiền phòng</option>
+                <option value="utilities" {% if filters.service_type=='utilities' %}selected{% endif %}>Điện/Nước</option>
+                <option value="trash" {% if filters.service_type=='trash' %}selected{% endif %}>Rác</option>
+                <option value="maintenance" {% if filters.service_type=='maintenance' %}selected{% endif %}>Bảo trì</option>
+            </select>
+        </div>
+        <div>
+            <label class="text-sm text-gray-600">Từ (VNĐ)</label>
+            <input type="number" name="min_amount" class="border rounded px-2 py-1 w-28"
+                value="{{ filters.min_amount or '' }}">
+        </div>
+        <div>
+            <label class="text-sm text-gray-600">Đến (VNĐ)</label>
+            <input type="number" name="max_amount" class="border rounded px-2 py-1 w-28"
+                value="{{ filters.max_amount or '' }}">
+        </div>
+        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Lọc</button>
+        <a href="{{ url_for('admin.payments') }}" class="text-gray-500 underline text-sm">Xóa lọc</a>
     </form>
+
+    <!--TẠO HÓA ĐƠN THEO THÁNG-->
+        <h2 class="text-lg font-semibold mb-4">Tạo hóa đơn tiền phòng, điện, nước</h2>
+        <div class="flex items-center gap-4 flex-wrap">
+            <!-- Nút tải file mẫu -->
+            <a href="{{ url_for('admin.generate_bills_template') }}"
+                class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                Tải file mẫu Excel
+            </a>
+    
+            <!-- Form upload -->
+            <form action="{{ url_for('admin.upload_bills_excel') }}" method="POST" enctype="multipart/form-data"
+                class="flex items-center gap-3">
+                <input type="file" name="file" accept=".xlsx"
+                    class="border border-gray-300 rounded-lg px-3 py-2 w-64 text-sm">
+                <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    Tạo hóa đơn
+                </button>
+            </form>
+        </div>
+    
+        <p class="text-sm text-gray-500 mt-3">
+            Tải file mẫu, điền tiền điện/nước/phòng, sau đó upload lại để hệ thống tự động tạo hóa đơn tháng.
+        </p>
 
 
     <div class="overflow-x-auto bg-white shadow-md rounded-lg">
@@ -93,11 +151,6 @@
             </tbody>
         </table>
     </div>
-    <a href="{{ url_for('admin.generate_bills') }}"
-        class="fixed bottom-6 right-8 bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-3 rounded-lg shadow-lg transition-all duration-200">
-        Tạo hóa đơn tháng {{ current_time.month }}/{{ current_time.year }}
-    </a>
-
 
 </div>
 

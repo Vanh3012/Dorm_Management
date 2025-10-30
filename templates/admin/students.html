@@ -1,82 +1,119 @@
 {% extends "admin_base.html" %}
 {% block content %}
-<div class="p-6">
-    <h1 class="text-2xl font-bold mb-6">Quản lý sinh viên</h1>
+<div class="flex justify-center">
+    <div class="w-full max-w-6xl p-6">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800">Quản lý sinh viên</h1>
 
-    <div class="flex justify-between items-center mb-4">
-        <form method="get" action="{{ url_for('admin.students') }}" class="flex gap-2">
-            <input type="text" name="q" placeholder="Tìm kiếm sinh viên..." value="{{ keyword or '' }}"
-                class="border rounded-lg px-3 py-2 w-72 focus:outline-none focus:ring focus:border-blue-300">
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                Tìm kiếm
-            </button>
-        </form>
-    
-        {% if keyword %}
-        <a href="{{ url_for('admin.students') }}" class="text-gray-500 hover:text-black text-sm">Xóa lọc</a>
+        <!-- Thanh tìm kiếm -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+            <form method="get" action="{{ url_for('admin.students') }}" class="flex gap-2 w-full sm:w-auto">
+                <input type="text" name="q" placeholder="Tìm kiếm sinh viên..." value="{{ keyword or '' }}"
+                    class="flex-1 sm:w-72 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                <button type="submit"
+                    class="bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                    Tìm kiếm
+                </button>
+            </form>
+
+            {% if keyword %}
+            <a href="{{ url_for('admin.students') }}" class="text-gray-500 hover:text-blue-600 text-sm font-medium">
+                ✖ Xóa lọc
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Bảng dữ liệu -->
+        <div class="overflow-x-auto bg-white shadow-md rounded-xl border border-gray-100">
+            <table class="w-full text-sm text-left border-collapse table-auto">
+                <thead class="bg-gray-100 text-gray-700 text-xs uppercase">
+                    <tr class="align-middle">
+                        <th class="px-3 py-2 text-center w-10">#</th>
+                        <th class="px-3 py-2">MSSV</th>
+                        <th class="px-3 py-2">Họ tên</th>
+                        <th class="px-3 py-2">Lớp</th>
+                        <th class="px-3 py-2 text-center">Phòng</th>
+                        <th class="px-3 py-2 text-center">Thanh toán</th>
+                        <th class="px-3 py-2 text-center w-20">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in students %}
+                    <tr class="border-b hover:bg-gray-50 transition align-middle">
+                        <td class="px-3 py-2 text-center">{{ loop.index + (page - 1) * 20 }}</td>
+                        <td class="px-3 py-2">{{ item.student.student_id }}</td>
+                        <td class="px-3 py-2 font-medium text-gray-800">{{ item.student.fullname }}</td>
+                        <td class="px-3 py-2">{{ item.student.class_id }}</td>
+                        <td class="px-3 py-2 text-center">
+                            {% if item.room %}
+                            <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">
+                                {{ item.room.room_number }} ({{ item.room.block }})
+                            </span>
+                            {% else %}
+                            <span class="text-gray-400 italic">Chưa có</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            {% if item.unpaid %}
+                            <span class="text-red-600 font-semibold">{{ item.unpaid|length }} chưa thanh toán</span>
+                            {% else %}
+                            <span class="text-gray-400 italic">Không có</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            <button onclick="openDetail('{{ item.student.id }}')"
+                                class="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs shadow-sm">
+                                Xem
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Phân trang -->
+        {% if total_pages > 1 %}
+        <div class="flex justify-center mt-6 space-x-1 text-sm">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin.students', page=page-1, q=keyword) }}"
+                class="px-3 py-1 border rounded-lg hover:bg-gray-100">&laquo;</a>
+            {% endif %}
+
+            {% set prev = 0 %}
+            {% for p in visible_pages %}
+            {% if p - prev > 1 %}
+            <span class="px-2 text-gray-400">…</span>
+            {% endif %}
+            {% if p == page %}
+            <span class="px-3 py-1 bg-blue-600 text-white rounded-lg">{{ p }}</span>
+            {% else %}
+            <a href="{{ url_for('admin.students', page=p, q=keyword) }}"
+                class="px-3 py-1 border rounded-lg hover:bg-gray-100">{{ p }}</a>
+            {% endif %}
+            {% set prev = p %}
+            {% endfor %}
+
+            {% if page < total_pages %} <a href="{{ url_for('admin.students', page=page+1, q=keyword) }}"
+                class="px-3 py-1 border rounded-lg hover:bg-gray-100">&raquo;</a>
+                {% endif %}
+        </div>
         {% endif %}
-    </div>
-
-    <div class="overflow-x-auto bg-white shadow-md rounded-lg">
-        <table class="w-full text-sm text-left border-collapse">
-            <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
-                <tr>
-                    <th class="px-4 py-3">STT</th>
-                    <th class="px-4 py-3">MSSV</th>
-                    <th class="px-4 py-3">Họ tên</th>
-                    <th class="px-4 py-3">Lớp</th>
-                    <th class="px-4 py-3">Phòng</th>
-                    <th class="px-4 py-3">Thanh toán</th>
-                    <th class="px-4 py-3"></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in students %}
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="px-4 py-2">{{ loop.index }}</td>
-                    <td class="px-4 py-2">{{ item.student.student_id }}</td>
-                    <td class="px-4 py-2">{{ item.student.fullname }}</td>
-                    <td class="px-4 py-2">{{ item.student.class_id }}</td>
-                    <td class="px-4 py-2">
-                        {% if item.room %}
-                        {{ item.room.room_number }} ({{ item.room.block }})
-                        {% else %}
-                        <span class="text-gray-400 italic">Chưa có</span>
-                        {% endif %}
-                    </td>
-                    <td class="px-4 py-2">
-                        {% if item.unpaid %}
-                        <span class="text-red-600 font-bold">{{ item.unpaid|length }} hóa đơn chưa thanh toán</span>
-                        {% else %}
-                        <span class="text-gray-400 italic">Không có</span>
-                        {% endif %}
-                    </td>
-                    <td class="px-4 py-2">
-                        <button onclick="openDetail('{{ item.student.id }}')"
-                            class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs">
-                            Xem chi tiết
-                        </button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
 </div>
 
-<!-- Modal -->
-<div id="studentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white w-1/2 rounded-lg shadow-lg p-6 relative">
-        <button onclick="closeModal()" class="absolute top-2 right-2 text-gray-500 hover:text-black">✕</button>
-        <h2 class="text-xl font-bold mb-4">Chi tiết sinh viên</h2>
-        <div id="modalContent">
+<!-- Modal chi tiết sinh viên -->
+<div id="studentModal"
+    class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition">
+    <div class="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
+        <button onclick="closeModal()" class="absolute top-3 right-3 text-gray-500 hover:text-black text-lg">✕</button>
+        <h2 class="text-xl font-bold mb-4 text-gray-800">Chi tiết sinh viên</h2>
+        <div id="modalContent" class="text-sm space-y-1">
             <p>Đang tải...</p>
         </div>
     </div>
 </div>
 
 <script>
-    // Map service_type sang tiếng Việt
     function translateService(type) {
         const map = {
             deposit: "Tiền cọc",
@@ -89,7 +126,6 @@
         return map[type] || type;
     }
 
-    // Map status sang tiếng Việt
     function translateStatus(status) {
         const map = {
             success: "Đã thanh toán",
@@ -99,28 +135,27 @@
     }
 
     function openDetail(studentId) {
-        // Gọi API lấy thông tin
         fetch(`/admin/students/${studentId}/detail`)
             .then(res => res.json())
             .then(data => {
                 let payments = data.payments.length > 0
-                    ? `<ul class="list-disc list-inside">` +
+                    ? `<ul class='list-disc list-inside space-y-1'>` +
                     data.payments.map(p =>
-                        `<li>${translateService(p.service)}: ${Number(p.amount).toLocaleString()}đ — ${translateStatus(p.status)}</li>`
+                        `<li>${translateService(p.service)}: <b>${Number(p.amount).toLocaleString()}đ</b> — ${translateStatus(p.status)}</li>`
                     ).join("") +
                     `</ul>`
-                    : `<p class="italic text-gray-500">Chưa có hóa đơn</p>`;
+                    : `<p class='italic text-gray-500'>Chưa có hóa đơn</p>`;
 
                 document.getElementById("modalContent").innerHTML = `
-                    <p><b>MSSV:</b> ${data.student_id}</p>
-                    <p><b>Họ tên:</b> ${data.fullname}</p>
-                    <p><b>Lớp:</b> ${data.class_id}</p>
-                    <p><b>Email:</b> ${data.email}</p>
-                    <p><b>SĐT:</b> ${data.phone_number}</p>
-                    <p><b>Phòng hiện tại:</b> ${data.room ?? '<i class="text-gray-500">Chưa có</i>'}</p>
-                    <h3 class="mt-4 font-semibold">Lịch sử thanh toán</h3>
-                    ${payments}
-                `;
+          <p><b>MSSV:</b> ${data.student_id}</p>
+          <p><b>Họ tên:</b> ${data.fullname}</p>
+          <p><b>Lớp:</b> ${data.class_id}</p>
+          <p><b>Email:</b> ${data.email}</p>
+          <p><b>SĐT:</b> ${data.phone_number}</p>
+          <p><b>Phòng hiện tại:</b> ${data.room ?? '<i class="text-gray-500">Chưa có</i>'}</p>
+          <h3 class="mt-4 font-semibold text-gray-800">Lịch sử thanh toán</h3>
+          ${payments}
+        `;
                 document.getElementById("studentModal").classList.remove("hidden");
             });
     }
@@ -128,7 +163,5 @@
     function closeModal() {
         document.getElementById("studentModal").classList.add("hidden");
     }
-
 </script>
-
 {% endblock %}

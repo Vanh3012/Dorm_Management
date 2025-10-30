@@ -235,47 +235,54 @@ def payments():
 def pay(payment_id):
     payment = Payment.query.get_or_404(payment_id)
 
-    # check quyền sinh viên chỉ được trả tiền của chính mình
+    # Kiểm tra quyền sinh viên
     if payment.user_id != current_user.id:
-        flash("Bạn không thể thanh toán hóa đơn này!", "danger")
-        return redirect(url_for("student.payments"))
+        return jsonify({"success": False, "message": "Không thể thanh toán hóa đơn này!"}), 403
 
+    # Nếu hóa đơn đã thanh toán
     if payment.status == "success":
-        flash("Hóa đơn này đã được thanh toán trước đó.", "info")
-        return redirect(url_for("student.payments"))
+        return jsonify({"success": False, "message": "Hóa đơn đã được thanh toán trước đó."}), 400
 
-    # Giả lập thanh toán thành công
+    # Cập nhật trạng thái
     payment.status = "success"
 
-    # Nếu là tiền cọc thì tạo booking và trừ số chỗ phòng
+    # Nếu là tiền cọc thì tạo booking
     if payment.service_type == "deposit":
-
         room = Room.query.get(payment.room_id)
         if room and room.available > 0:
-            booking = Booking(
+            # Kiểm tra xem sinh viên đã có booking active trong phòng này chưa
+            existing_booking = Booking.query.filter_by(
                 user_id=current_user.id,
                 room_id=room.id,
-                application_id=payment.application_id,
-                start_date=datetime.now(),
                 status="active"
-            )
-            db.session.add(booking)
-            room.available -= 1
+            ).first()
 
-            application = ApplicationRoom.query.get(payment.application_id)
-            if application:
-                application.status = "completed"
+            if not existing_booking:
+                booking = Booking(
+                    user_id=current_user.id,
+                    room_id=room.id,
+                    application_id=payment.application_id,
+                    start_date=datetime.now(),
+                    status="active"
+                )
+                db.session.add(booking)
+                room.available -= 1
+
+                # Cập nhật trạng thái đơn đăng ký
+                application = ApplicationRoom.query.get(payment.application_id)
+                if application:
+                    application.status = "completed"
 
     db.session.commit()
-    flash("Thanh toán thành công!", "success")
-    return redirect(url_for("student.payments", type=payment.service_type))
+    return jsonify({"success": True})
+
 
 #-------------------------------------------------------
 # Service Requests
 @student_bp.route("/services", methods=["GET", "POST"])
 @login_required
 def services():
-    TRASH_PRICE = 50000  # 50k/tháng
+    TRASH_PRICE = 50000
 
     if request.method == "POST":
         service_type = request.form.get("service_type")
