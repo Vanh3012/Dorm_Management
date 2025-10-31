@@ -3,14 +3,15 @@
 <div class="p-6">
     <h1 class="text-2xl font-bold mb-6">Quản lý đơn đăng ký</h1>
 
-    <!--Bộ lọc-->
+    <!-- Bộ lọc -->
     <form method="get" class="bg-white p-4 rounded-lg shadow mb-6 flex flex-wrap gap-3 items-end">
         <div>
             <label class="text-sm text-gray-600">Trạng thái</label>
             <select name="status" class="border rounded px-2 py-1">
                 <option value="">-- Tất cả --</option>
                 <option value="pending" {% if filters.status=='pending' %}selected{% endif %}>Chờ xử lý</option>
-                <option value="approved_pending_deposit" {% if filters.status=='approved_pending_deposit' %}selected{% endif %}>Đã duyệt</option>
+                <option value="approved_pending_deposit" {% if filters.status=='approved_pending_deposit' %}selected{%
+                    endif %}>Đã duyệt</option>
                 <option value="completed" {% if filters.status=='completed' %}selected{% endif %}>Hoàn thành</option>
                 <option value="rejected" {% if filters.status=='rejected' %}selected{% endif %}>Từ chối</option>
             </select>
@@ -49,7 +50,7 @@
         <a href="{{ url_for('admin.manage_applications') }}" class="text-gray-500 underline text-sm">Xóa lọc</a>
     </form>
 
-
+    <!-- Bảng -->
     <div class="overflow-x-auto bg-white shadow-md rounded-lg">
         <table class="w-full text-sm border-collapse">
             <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
@@ -69,7 +70,7 @@
                     <td class="px-4 py-2 font-medium">{{ app.fullname }}</td>
                     <td class="px-4 py-2">{{ app.student_id }}</td>
                     <td class="px-4 py-2">
-                        {{ app.room.block }} - {{ app.room.room_number }} <br>
+                        {{ app.room.block }} - {{ app.room.room_number }}<br>
                         <span class="text-xs text-gray-500">{{ app.room.address }}</span>
                     </td>
                     <td class="px-4 py-2">
@@ -80,10 +81,10 @@
                         <span class="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">Đã duyệt - chờ
                             cọc</span>
                         {% elif app.status == 'completed' %}
-                        <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">Thành
-                            công</span>
+                        <span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">Hoàn
+                            thành</span>
                         {% elif app.status == 'rejected' %}
-                        <span class="px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-800">Đã từ chối</span>
+                        <span class="px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-800">Từ chối</span>
                         {% else %}
                         <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-800">Không xác
                             định</span>
@@ -105,16 +106,24 @@
 <!-- Modal -->
 <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl relative overflow-y-auto max-h-[90vh]">
-        <h3 class="text-xl font-bold mb-4">Chi tiết đơn đăng ký</h3>
-        <div id="modalContent" class="space-y-2 text-sm text-gray-700">
-            <!-- Nội dung AJAX sẽ load -->
+        <h3 class="text-xl font-bold mb-4 text-gray-800 text-center border-b pb-2">Chi tiết đơn đăng ký</h3>
+
+        <div id="modalContent" class="space-y-3 text-sm text-gray-700">
+            <div class="text-center text-gray-500 italic">Đang tải...</div>
         </div>
-        <div class="flex justify-end gap-3 mt-6">
-            <button onclick="closeModal()" class="px-4 py-2 rounded-md bg-gray-400 text-white hover:bg-gray-500">
+
+        <div class="flex justify-end items-center gap-3 mt-6 border-t pt-4">
+            <a id="exportDocxBtn" href="#"
+                class="hidden bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm">
+                Xuất file DOCX
+            </a>
+            <button onclick="closeModal()"
+                class="px-4 py-2 rounded-md bg-gray-400 text-white hover:bg-gray-500 text-sm">
                 Đóng
             </button>
         </div>
-        <button onclick="closeModal()" class="absolute top-3 right-3 text-gray-500 text-xl">✕</button>
+
+        <button onclick="closeModal()" class="absolute top-3 right-3 text-gray-500 text-xl leading-none">✕</button>
     </div>
 </div>
 
@@ -129,56 +138,55 @@
         const labelMap = {
             pending: 'Chờ duyệt',
             approved_pending_deposit: 'Đã duyệt - chờ cọc',
-            rejected: 'Đã từ chối',
-            completed: 'Thành công'
+            rejected: 'Từ chối',
+            completed: 'Hoàn thành'
         };
         const cls = map[status] || 'bg-gray-100 text-gray-800';
         const label = labelMap[status] || status;
         return `<span class="px-2 py-1 rounded text-xs font-semibold ${cls}">${label}</span>`;
     }
 
-    function viewDetail(appId) {
-        fetch(`/admin/api/application/${appId}`)
-            .then(res => res.json())
-            .then(data => {
-                const actionsHtml = (data.can_approve && data.can_reject)
-                    ? `
-                      <div class="flex gap-2 mt-4">
-                        <a href="/admin/application/${data.id}/approve"
-                           class="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-xs">Duyệt</a>
-                        <a href="/admin/application/${data.id}/reject"
-                           class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-xs">Từ chối</a>
-                      </div>`
-                    : `<div class="mt-3">${statusBadge(data.status)}</div>`;
+    async function viewDetail(appId) {
+        const modal = document.getElementById("detailModal");
+        const content = document.getElementById("modalContent");
+        const exportBtn = document.getElementById("exportDocxBtn");
+        modal.classList.remove("hidden");
+        content.innerHTML = `<div class="text-center text-gray-500 italic">Đang tải...</div>`;
+        exportBtn.classList.add("hidden");
 
-                const html = `
-          <p><b>Họ tên:</b> ${data.fullname}</p>
-          <p><b>MSSV:</b> ${data.student_id}</p>
-          <p><b>Lớp:</b> ${data.class_id}</p>
-          <p><b>CCCD:</b> ${data.citizen_id}</p>
-          <p><b>Email:</b> ${data.email}</p>
-          <p><b>SĐT:</b> ${data.phone_number}</p>
-          <p><b>Phòng:</b> ${data.room}</p>
-          <p><b>Địa chỉ thường trú:</b> ${data.address || ''}</p>
-          <p><b>Quê quán:</b> ${data.hometown || ''}</p>
-          <p><b>Người thân 1:</b> ${data.relative1_name || ''} (${data.relative1_phone || ''}, ${data.relative1_birthyear || ''})</p>
-          <p><b>Người thân 2:</b> ${data.relative2_name || ''} (${data.relative2_phone || ''}, ${data.relative2_birthyear || ''})</p>
-          <p><b>Diện chính sách:</b> ${data.policy_type || ''}</p>
-          <p><b>Hoàn cảnh khó khăn:</b> ${data.family_difficulty || ''}</p>
-          <p><b>Ảnh 3x4:</b> ${data.student_photo ? `<img src="/static/${data.student_photo}" class="w-24 h-32 object-cover border rounded mt-1">` : 'Không có'}</p>
-          <p><b>Ảnh CCCD:</b> ${data.citizen_proof ? `<img src="/static/${data.citizen_proof}" class="w-40 object-cover border rounded mt-1">` : 'Không có'}</p>
-          <p><b>Minh chứng ưu tiên:</b> ${data.policy_proof ? `<img src="/static/${data.policy_proof}" class="w-40 object-cover border rounded mt-1">` : 'Không có'}</p>
-          <p><b>Trạng thái:</b> ${statusBadge(data.status)}</p>
-          <p><b>Ngày tạo:</b> ${data.created_at}</p>
-          ${actionsHtml}
+        try {
+            const res = await fetch(`/admin/api/application/${appId}`);
+            if (!res.ok) throw new Error("Lỗi tải dữ liệu");
+            const data = await res.json();
+
+            content.innerHTML = `
+            <p><b>Họ tên:</b> ${data.fullname}</p>
+            <p><b>MSSV:</b> ${data.student_id}</p>
+            <p><b>Lớp:</b> ${data.class_id}</p>
+            <p><b>CCCD:</b> ${data.citizen_id}</p>
+            <p><b>Email:</b> ${data.email}</p>
+            <p><b>SĐT:</b> ${data.phone_number}</p>
+            <p><b>Phòng:</b> ${data.room || '-'}</p>
+            <p><b>Địa chỉ thường trú:</b> ${data.address || ''}</p>
+            <p><b>Người thân 1:</b> ${data.relative1_name || ''} (${data.relative1_phone || ''})</p>
+            <p><b>Người thân 2:</b> ${data.relative2_name || ''} (${data.relative2_phone || ''})</p>
+            <p><b>Diện chính sách:</b> ${data.policy_type || ''}</p>
+            <p><b>Hoàn cảnh gia đình:</b> ${data.family_income || ''}</p>
+            <div class="grid grid-cols-3 gap-3 mt-3">
+                ${data.student_photo ? `<img src="/static/${data.student_photo}" class="w-full border rounded">` : ''}
+                ${data.citizen_proof ? `<img src="/static/${data.citizen_proof}" class="w-full border rounded">` : ''}
+                ${data.priority_proof ? `<img src="/static/${data.priority_proof}" class="w-full border rounded">` : ''}
+            </div>
+            <hr class="my-3">
+            <div><b>Trạng thái:</b> ${statusBadge(data.status)}</div>
+            <div><b>Ngày tạo:</b> ${data.created_at}</div>
         `;
-                document.getElementById("modalContent").innerHTML = html;
-                document.getElementById("detailModal").classList.remove("hidden");
-            })
-            .catch(err => {
-                alert("Lỗi tải chi tiết đơn!");
-                console.error(err);
-            });
+
+            exportBtn.href = `/admin/export_application/${appId}`;
+            exportBtn.classList.remove("hidden");
+        } catch (err) {
+            content.innerHTML = `<div class="text-red-600 text-center">Lỗi khi tải dữ liệu!</div>`;
+        }
     }
 
     function closeModal() {

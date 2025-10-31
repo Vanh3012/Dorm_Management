@@ -18,6 +18,10 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import or_, func, extract
 import unicodedata, calendar
 import pandas as pd
+from docx import Document
+from docx.shared import Inches,Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from io import BytesIO
 from math import ceil
 
 admin_bp = Blueprint("admin", __name__, template_folder="../../templates/admin")
@@ -36,7 +40,7 @@ def restrict_to_admin():
 @admin_bp.route("/dashboard")
 @login_required
 def dashboard():
-    # Lấy tháng/năm từ query params (mặc định là tháng/năm hiện tại)
+    # Lấy tháng, năm từ query params (mặc định là tháng/năm hiện tại)
     selected_month = request.args.get('month', type=int)
     selected_year = request.args.get('year', type=int)
     
@@ -63,7 +67,7 @@ def dashboard():
         .all()
     )
     service_name_map = {
-    "deposit": "Tiền đặt cọc",
+    "deposit": "Tiền phòng",
     "utilities": "Điện & Nước",
     "trash": "Thu gom rác",
     "maintenance": "Bảo trì - Sửa chữa"
@@ -85,7 +89,7 @@ def dashboard():
         Booking.created_at <= end_of_month
     ).order_by(Booking.created_at).all()
     
-    # Chia theo tuần (7 ngày một tuần)
+    # Chia theo tuần 
     week_counts = {}
     for booking in bookings_this_month:
         # Tính tuần thứ mấy trong tháng (bắt đầu từ ngày 1)
@@ -530,6 +534,80 @@ def reject_application(app_id):
     flash("Đơn đã bị từ chối.", "info")
     return redirect(url_for("admin.manage_applications"))
 
+#Xuất file docx
+@admin_bp.route('/export_application/<int:application_id>')
+def export_application(application_id):
+    app = ApplicationRoom.query.get_or_404(application_id)
+    user = app.user
+
+    doc = Document()
+    doc.add_heading("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", 0)
+    doc.add_paragraph("Độc lập - Tự do - Hạnh phúc", style="Intense Quote")
+    doc.add_paragraph("\n\n", style=None)
+    doc.add_heading("ĐƠN ĐĂNG KÝ Ở KÝ TÚC XÁ", level=0).alignment = 1
+
+    # Thông tin cá nhân
+    doc.add_heading("1. Thông tin cá nhân", level=1)
+    info = [
+        ("Họ và tên", user.fullname),
+        ("MSSV", user.student_id),
+        ("Lớp", user.class_id),
+        ("CCCD", user.citizen_id),
+    ]
+    for label, value in info:
+        doc.add_paragraph(f"{label}: {value or ''}")
+
+    # Liên hệ
+    doc.add_heading("2. Thông tin liên hệ", level=1)
+    doc.add_paragraph(f"Email: {user.email or ''}")
+    doc.add_paragraph(f"Số điện thoại: {user.phone_number or ''}")
+
+    # Địa chỉ
+    doc.add_heading("3. Địa chỉ & Quê quán", level=1)
+    doc.add_paragraph(f"Địa chỉ thường trú: {app.address or ''}")
+
+    # Người thân
+    doc.add_heading("4. Thông tin người thân", level=1)
+    doc.add_paragraph(f"Người thân 1: {app.relative1_name or ''} | SĐT: {app.relative1_phone or ''} | Năm sinh: {app.relative1_birthyear or ''}")
+    doc.add_paragraph(f"Người thân 2: {app.relative2_name or ''} | SĐT: {app.relative2_phone or ''} | Năm sinh: {app.relative2_birthyear or ''}")
+
+    # Chính sách
+    doc.add_heading("5. Chính sách / Hoàn cảnh", level=1)
+    doc.add_paragraph(f"Diện chính sách: {app.policy_type or ''}")
+
+    # Ảnh hồ sơ
+    doc.add_heading("6. Ảnh hồ sơ", level=1)
+
+    def add_img(title, path):
+        doc.add_paragraph(title + ":")
+        if not path:
+            doc.add_paragraph("Không có")
+            return
+        img_path = os.path.join("static", path)
+        if not os.path.exists(img_path):
+            doc.add_paragraph("(File không tồn tại)")
+            return
+        try:
+            doc.add_picture(img_path, width=Inches(2))
+        except Exception:
+            doc.add_paragraph("(Không thể đọc file ảnh này)")
+
+    add_img("Ảnh 3x4", app.student_photo)
+    add_img("Ảnh CCCD", app.citizen_proof)
+    add_img("Minh chứng ưu tiên", app.policy_proof)
+
+    # Chữ ký
+    doc.add_paragraph("\n\n\n")
+    doc.add_paragraph("Người làm đơn", style="Normal").alignment = 2
+    doc.add_paragraph(user.fullname or "", style="Normal").alignment = 2
+
+    # Xuất file
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    filename = f"DonDangKy_{user.student_id}.docx"
+    return send_file(buffer, as_attachment=True, download_name=filename)
+
 #-------------------------------------------------------
 # Quản lý sinh viên
 def normalize_text(s):
@@ -611,7 +689,6 @@ def student_detail_api(student_id):
     })
 
 #-------------------------------------------------------
-import random
 # Quản lý hóa đơn
 @admin_bp.route("/payments")
 @login_required

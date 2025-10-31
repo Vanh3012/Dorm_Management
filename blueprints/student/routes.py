@@ -68,7 +68,7 @@ def dorm_register():
 
     query = Room.query
 
-    # --- Lọc cơ bản ---
+    # Lọc cơ bản 
     if address:
         query = query.filter_by(address=address)
     if block:
@@ -76,7 +76,7 @@ def dorm_register():
     if room_number:
         query = query.filter(Room.room_number.like(f"%{room_number}%"))
 
-    # --- Lọc nâng cao ---
+    # Lọc nâng cao
     if min_price:
         query = query.filter(Room.price_room >= min_price)
     if max_price:
